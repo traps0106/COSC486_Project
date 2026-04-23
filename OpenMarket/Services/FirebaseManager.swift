@@ -222,20 +222,24 @@ class FirebaseManager: ObservableObject {
 }
     
     func fetchReviewsForSeller(sellerID: String) async throws -> [Review] {
-        let snapshot = try await db.collection("reviews")
-            .whereField("sellerID", isEqualTo: sellerID)
-            .order(by: "timestamp", descending: true)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Review.self) }
-    }
+    let snapshot = try await db.collection("reviews")
+        .whereField("sellerID", isEqualTo: sellerID)
+        .order(by: "timestamp", descending: false) 
+        .getDocuments()
+    
+    // Reverse array to show newest first
+    return snapshot.documents.compactMap { try? $0.data(as: Review.self) }.reversed()
+}
     
     func fetchReviewsForProduct(productID: String) async throws -> [Review] {
-        let snapshot = try await db.collection("reviews")
-            .whereField("productID", isEqualTo: productID)
-            .order(by: "timestamp", descending: true)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Review.self) }
-    }
+    let snapshot = try await db.collection("reviews")
+        .whereField("productID", isEqualTo: productID)
+        .order(by: "timestamp", descending: false)  // ← CHANGED FROM true TO false
+        .getDocuments()
+    
+    // Reverse array to show newest first
+    return snapshot.documents.compactMap { try? $0.data(as: Review.self) }.reversed()
+}
     
     private func updateSellerRating(sellerID: String) async throws {
         let reviews = try await fetchReviewsForSeller(sellerID: sellerID)
