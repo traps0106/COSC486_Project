@@ -27,11 +27,13 @@ struct ProductDetailView: View {
                 .clipped()
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    // Title and Price
+                    // Title
                     Text(product.title)
                         .font(.title)
                         .fontWeight(.bold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
+                    // Price
                     Text("$\(product.price, specifier: "%.2f")")
                         .font(.title2)
                         .foregroundColor(.green)
@@ -39,15 +41,22 @@ struct ProductDetailView: View {
                     
                     // Category
                     Text(product.category)
-                        .padding(8)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                         .background(Color.blue.opacity(0.2))
+                        .foregroundColor(.blue)
                         .cornerRadius(8)
                     
+                    Divider()
+                    
                     // Description
-                    Text("Description")
-                        .font(.headline)
-                    Text(product.description)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Description")
+                            .font(.headline)
+                        Text(product.description)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     
                     Divider()
                     
@@ -57,45 +66,48 @@ struct ProductDetailView: View {
                             Text("Seller Information")
                                 .font(.headline)
                             
-                            HStack {
+                            HStack(spacing: 12) {
                                 AsyncImage(url: URL(string: seller.profileImageURL ?? "")) { image in
-                                    image.resizable()
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
                                 } placeholder: {
-                                    Circle().fill(Color.gray.opacity(0.3))
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.3))
                                 }
                                 .frame(width: 50, height: 50)
                                 .clipShape(Circle())
                                 
-                                VStack(alignment: .leading) {
+                                VStack(alignment: .leading, spacing: 4) {
                                     Text(seller.name)
                                         .fontWeight(.semibold)
-                                    HStack {
+                                    HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
                                             .foregroundColor(.yellow)
+                                            .font(.caption)
                                         Text(String(format: "%.1f", seller.averageRating))
+                                            .font(.caption)
                                     }
-                                    .font(.caption)
                                 }
                             }
                         }
-                    } else {
-                        ProgressView()
-                            .padding()
                     }
                     
                     Divider()
                     
                     // Reviews
-                    Text("Reviews")
-                        .font(.headline)
-                    
-                    if reviews.isEmpty {
-                        Text("No reviews yet")
-                            .foregroundColor(.secondary)
-                            .padding()
-                    } else {
-                        ForEach(reviews.prefix(3)) { review in
-                            ReviewRowView(review: review)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Reviews")
+                            .font(.headline)
+                        
+                        if reviews.isEmpty {
+                            Text("No reviews yet")
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(reviews.prefix(3)) { review in
+                                ReviewRowView(review: review)
+                            }
                         }
                     }
                     
@@ -112,14 +124,15 @@ struct ProductDetailView: View {
                                 .cornerRadius(10)
                         }
                         
-                        HStack {
+                        HStack(spacing: 12) {
                             Button(action: {
                                 Task {
                                     await toggleFavorite()
                                 }
                             }) {
-                                Label(isFavorite ? "Remove from Favorites" : "Add to Favorites", 
+                                Label(isFavorite ? "Unfavorite" : "Favorite", 
                                       systemImage: isFavorite ? "heart.fill" : "heart")
+                                    .font(.subheadline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(isFavorite ? Color.red : Color.gray.opacity(0.2))
@@ -130,7 +143,8 @@ struct ProductDetailView: View {
                             Button(action: {
                                 showMap = true
                             }) {
-                                Label("View on Map", systemImage: "map.fill")
+                                Label("Map", systemImage: "map.fill")
+                                    .font(.subheadline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(Color.green)
@@ -150,6 +164,7 @@ struct ProductDetailView: View {
                                 .cornerRadius(10)
                         }
                     }
+                    .padding(.top, 8)
                 }
                 .padding()
             }
@@ -215,6 +230,7 @@ struct ReviewRowView: View {
             }
             Text(review.comment)
                 .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
         .background(Color(.systemGray6))
