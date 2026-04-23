@@ -11,7 +11,6 @@ struct ProductDetailView: View {
     
     private let firebaseManager = FirebaseManager.shared
     
-    // Check if current user is the seller
     private var isOwnProduct: Bool {
         guard let currentUserID = firebaseManager.currentUser?.id else { return false }
         return currentUserID == product.sellerID
@@ -20,7 +19,6 @@ struct ProductDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // Product Image
                 AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
                     image
                         .resizable()
@@ -29,23 +27,22 @@ struct ProductDetailView: View {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
                 }
+                .frame(maxWidth: .infinity)
                 .frame(height: 300)
                 .clipped()
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    // Title
                     Text(product.title)
                         .font(.title)
                         .fontWeight(.bold)
+                        .fixedSize(horizontal: false, vertical: true)
                     
-                    // Price
                     Text("$\(product.price, specifier: "%.2f")")
                         .font(.title2)
                         .foregroundColor(.green)
                         .fontWeight(.semibold)
                     
-                    // Category
-                    HStack {
+                    HStack(spacing: 8) {
                         Text(product.category)
                             .font(.subheadline)
                             .padding(.horizontal, 12)
@@ -54,7 +51,7 @@ struct ProductDetailView: View {
                             .foregroundColor(.blue)
                             .cornerRadius(8)
                         
-                        HStack(spacing: 2) {
+                        HStack(spacing: 4) {
                             Image(systemName: "star.fill")
                                 .foregroundColor(.yellow)
                                 .font(.caption)
@@ -66,18 +63,17 @@ struct ProductDetailView: View {
                     
                     Divider()
                     
-                    // Description
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Description")
                             .font(.headline)
                         Text(product.description)
                             .font(.body)
                             .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     
                     Divider()
                     
-                    // Seller Info
                     if let seller = seller {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Seller Information")
@@ -91,6 +87,11 @@ struct ProductDetailView: View {
                                 } placeholder: {
                                     Circle()
                                         .fill(Color.gray.opacity(0.3))
+                                        .overlay(
+                                            Text(String(seller.name.prefix(1)))
+                                                .font(.title3)
+                                                .foregroundColor(.blue)
+                                        )
                                 }
                                 .frame(width: 50, height: 50)
                                 .clipShape(Circle())
@@ -115,7 +116,6 @@ struct ProductDetailView: View {
                         Divider()
                     }
                     
-                    // Reviews
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Reviews")
                             .font(.headline)
@@ -132,7 +132,6 @@ struct ProductDetailView: View {
                         }
                     }
                     
-                    // Action Buttons (only show if NOT own product)
                     if !isOwnProduct {
                         VStack(spacing: 12) {
                             Button(action: {
@@ -166,7 +165,7 @@ struct ProductDetailView: View {
                                 Button(action: {
                                     showMap = true
                                 }) {
-                                    Label("View Map", systemImage: "map.fill")
+                                    Label("Map", systemImage: "map.fill")
                                         .font(.subheadline)
                                         .frame(maxWidth: .infinity)
                                         .padding()
@@ -190,7 +189,6 @@ struct ProductDetailView: View {
                         }
                         .padding(.top, 8)
                     } else {
-                        // Show message if it's user's own product
                         VStack(spacing: 12) {
                             HStack {
                                 Image(systemName: "info.circle")
@@ -284,6 +282,7 @@ struct ReviewRowView: View {
             Text(review.comment)
                 .font(.subheadline)
                 .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
         .background(Color(.systemGray6))

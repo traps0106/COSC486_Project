@@ -15,7 +15,6 @@ struct ProductListView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search bar
                 HStack {
                     TextField("Search products...", text: $searchText)
                         .padding(10)
@@ -39,6 +38,29 @@ struct ProductListView: View {
                     Spacer()
                     ProgressView()
                     Spacer()
+                } else if let error = viewModel.errorMessage {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.orange)
+                        Text("Error")
+                            .font(.headline)
+                        Text(error)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        Button("Retry") {
+                            Task {
+                                await viewModel.fetchProducts()
+                            }
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                    Spacer()
                 } else if viewModel.filteredProducts.isEmpty {
                     Spacer()
                     VStack(spacing: 12) {
@@ -48,15 +70,19 @@ struct ProductListView: View {
                         Text("No products found")
                             .font(.headline)
                             .foregroundColor(.secondary)
+                        Text(searchText.isEmpty ? "Be the first to list something!" : "Try a different search")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 15) {
+                        LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(viewModel.filteredProducts) { product in
                                 NavigationLink(destination: ProductDetailView(product: product)) {
                                     ProductCardView(product: product, isNearby: viewModel.isNearby(product: product))
                                 }
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                         .padding()
@@ -81,7 +107,6 @@ struct ProductCardView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Image
             AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
                 image
                     .resizable()
@@ -93,7 +118,6 @@ struct ProductCardView: View {
             .frame(height: 150)
             .clipped()
             
-            // Info
             VStack(alignment: .leading, spacing: 6) {
                 Text(product.title)
                     .font(.headline)
@@ -139,6 +163,6 @@ struct ProductCardView: View {
         }
         .background(Color(.systemBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }

@@ -11,11 +11,9 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
-                // User Info Section
                 Section {
                     if let user = firebaseManager.currentUser {
                         HStack(spacing: 16) {
-                            // Profile Picture Placeholder
                             AsyncImage(url: URL(string: user.profileImageURL ?? "")) { image in
                                 image
                                     .resizable()
@@ -54,7 +52,6 @@ struct ProfileView: View {
                     }
                 }
                 
-                // My Listings Section
                 Section {
                     if isLoading {
                         HStack {
@@ -97,6 +94,7 @@ struct ProfileView: View {
                                         Text(product.title)
                                             .font(.headline)
                                             .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
                                         Text("$\(product.price, specifier: "%.2f")")
                                             .font(.subheadline)
                                             .foregroundColor(.green)
@@ -118,7 +116,6 @@ struct ProfileView: View {
                     Text("My Listings (\(myProducts.count))")
                 }
                 
-                // Logout Section
                 Section {
                     Button(role: .destructive, action: {
                         authViewModel.logout()

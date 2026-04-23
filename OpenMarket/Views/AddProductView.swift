@@ -1,7 +1,6 @@
 import SwiftUI
 import PhotosUI
-import Combine
-import FirebaseAuth
+
 struct AddProductView: View {
     @State private var title = ""
     @State private var description = ""
@@ -27,11 +26,13 @@ struct AddProductView: View {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 200)
+                            .frame(maxHeight: 200)
+                            .cornerRadius(10)
                     }
                     
-                    Button("Select Image") {
-                        showImagePicker = true
+                    Button(action: { showImagePicker = true }) {
+                        Label(selectedImage == nil ? "Select Image" : "Change Image", 
+                              systemImage: "photo")
                     }
                 }
                 
@@ -39,32 +40,42 @@ struct AddProductView: View {
                     TextField("Title", text: $title)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
-                    TextField("Price", text: $price)
+                    TextField("Price (BD)", text: $price)
                         .keyboardType(.decimalPad)
                     
                     Picker("Category", selection: $selectedCategory) {
                         ForEach(categories, id: \.self) { category in
-                            Text(category)
+                            Text(category).tag(category)
                         }
                     }
                 }
                 
                 Section("Location") {
                     if let location = locationManager.location {
-                        Text("Location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(.green)
+                            Text("Location captured")
+                                .foregroundColor(.secondary)
+                        }
                     } else {
-                        Text("Getting location...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Getting location...")
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
                 
                 Section {
                     Button(action: addProduct) {
                         if isLoading {
-                            ProgressView()
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
                         } else {
                             Text("List Product")
                                 .frame(maxWidth: .infinity)
@@ -94,61 +105,51 @@ struct AddProductView: View {
     }
     
     var isFormValid: Bool {
-        !title.isEmpty && !description.isEmpty && !price.isEmpty && selectedImage != nil && locationManager.location != nil
+        !title.isEmpty && 
+        !description.isEmpty && 
+        !price.isEmpty && 
+        Double(price) != nil &&
+        selectedImage != nil && 
+        locationManager.location != nil
     }
     
     func addProduct() {
-        print("Add Product button pressed")
-        print("Form validation check:")
-        print("  - Title: '\(title)' (empty: \(title.isEmpty))")
-        print("  - Description: '\(description)' (empty: \(description.isEmpty))")
-        print("  - Price: '\(price)' (empty: \(price.isEmpty))")
-        print("  - Image selected: \(selectedImage != nil)")
-        print("  - Location available: \(locationManager.location != nil)")
-        
         guard let priceValue = Double(price) else {
-            print(" Invalid price: '\(price)' - cannot convert to number")
+            errorMessage = "Invalid price"
+            showError = true
             return
         }
-        print(" Price converted: \(priceValue)")
         
         guard let location = locationManager.location else {
-            print(" No location available")
+            errorMessage = "Location not available"
+            showError = true
             return
         }
-        print(" Location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         
-        if selectedImage == nil {
-            print(" No image selected")
+        guard let image = selectedImage else {
+            errorMessage = "Please select an image"
+            showError = true
             return
         }
-        print(" Image is selected")
         
-        print(" Starting Firebase upload...")
         isLoading = true
         
         Task {
             do {
-                print(" Calling firebaseManager.addProduct()...")
                 let productID = try await firebaseManager.addProduct(
                     title: title,
                     description: description,
                     price: priceValue,
                     category: selectedCategory,
-                    image: selectedImage,
+                    image: image,
                     location: location.coordinate
                 )
-                
-                print(" SUCCESS! Product added with ID: \(productID)")
                 
                 await MainActor.run {
                     isLoading = false
                     showSuccess = true
-                    print(" Success alert should show now")
                 }
             } catch {
-                print(" ERROR adding product: \(error.localizedDescription)")
-                print(" Full error: \(error)")
                 await MainActor.run {
                     isLoading = false
                     errorMessage = error.localizedDescription
@@ -163,5 +164,6 @@ struct AddProductView: View {
         description = ""
         price = ""
         selectedImage = nil
+        selectedCategory = "Electronics"
     }
 }
