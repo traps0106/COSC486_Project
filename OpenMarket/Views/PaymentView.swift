@@ -1,3 +1,90 @@
+import SwiftUI
+
+struct PaymentView: View {
+    let product: Product
+    let seller: User
+    @Environment(\.dismiss) private var dismiss
+    @State private var showReview = false
+    @State private var paymentComplete = false
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                if !paymentComplete {
+                    Text("Mock Payment")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .padding(.top, 40)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Product: \(product.title)")
+                        Text("Price: $\(product.price, specifier: "%.2f")")
+                        Text("Seller: \(seller.name)")
+                    }
+                    .font(.headline)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding()
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        paymentComplete = true
+                    }) {
+                        Text("Complete Purchase")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(.green)
+                        
+                        Text("Purchase Complete!")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text("Thank you for your purchase")
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            showReview = true
+                        }) {
+                            Text("Leave a Review")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        
+                        Button("Close") {
+                            dismiss()
+                        }
+                        .padding(.bottom)
+                    }
+                    .padding()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showReview) {
+                ReviewView(product: product, seller: seller, onSubmit: {
+                    dismiss()
+                })
+            }
+        }
+    }
+}
+
 struct ReviewView: View {
     let product: Product
     let seller: User
@@ -8,7 +95,7 @@ struct ReviewView: View {
     @State private var isSubmitting = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     
     private let firebaseManager = FirebaseManager.shared
     
@@ -52,7 +139,7 @@ struct ReviewView: View {
                                 .fontWeight(.semibold)
                         }
                     }
-                    .disabled(isSubmitting || comment.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(isSubmitting || comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .navigationTitle("Leave a Review")
@@ -72,8 +159,10 @@ struct ReviewView: View {
         }
     }
     
-    func submitReview() {
-        guard !comment.trimmingCharacters(in: .whitespaces).isEmpty else {
+    private func submitReview() {
+        let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedComment.isEmpty else {
             errorMessage = "Please write a review"
             showError = true
             return
@@ -89,20 +178,20 @@ struct ReviewView: View {
         
         Task {
             do {
-                print("   Submitting review...")
+                print(" Submitting review...")
                 print("   Product ID: \(productID)")
                 print("   Seller ID: \(sellerID)")
                 print("   Rating: \(rating)")
-                print("   Comment: \(comment)")
+                print("   Comment: \(trimmedComment)")
                 
                 try await firebaseManager.addReview(
                     productID: productID,
                     sellerID: sellerID,
                     rating: rating,
-                    comment: comment
+                    comment: trimmedComment
                 )
                 
-                print("Review submitted successfully!")
+                print(" Review submitted successfully!")
                 
                 await MainActor.run {
                     isSubmitting = false
@@ -110,7 +199,7 @@ struct ReviewView: View {
                     onSubmit()
                 }
             } catch {
-                print("Error submitting review: \(error)")
+                print(" Error submitting review: \(error)")
                 print("   Error details: \(error.localizedDescription)")
                 
                 await MainActor.run {
