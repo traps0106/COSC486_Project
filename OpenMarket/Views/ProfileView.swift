@@ -5,49 +5,79 @@ struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var myProducts: [Product] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
     
     private let firebaseManager = FirebaseManager.shared
-    
-    let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
     
     var body: some View {
         NavigationStack {
             List {
+                // User Info Section
                 Section {
                     if let user = firebaseManager.currentUser {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(user.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            Text(user.email)
-                                .foregroundColor(.secondary)
+                        HStack(spacing: 16) {
+                            // Profile Picture Placeholder
+                            AsyncImage(url: URL(string: user.profileImageURL ?? "")) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.2))
+                                    .overlay(
+                                        Text(String(user.name.prefix(1)))
+                                            .font(.title)
+                                            .foregroundColor(.blue)
+                                    )
+                            }
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
                             
-                            HStack {
-                                Image(systemName: "star.fill")
-                                    .foregroundColor(.yellow)
-                                Text(String(format: "%.1f", user.averageRating))
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(user.name)
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                Text(user.email)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                        .foregroundColor(.yellow)
+                                        .font(.caption)
+                                    Text(String(format: "%.1f", user.averageRating))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
-                        .padding(.vertical)
+                        .padding(.vertical, 8)
                     }
                 }
                 
-                Section("My Listings (\(myProducts.count))") {
+                // My Listings Section
+                Section {
                     if isLoading {
                         HStack {
                             Spacer()
                             ProgressView()
                             Spacer()
                         }
+                        .padding()
                     } else if myProducts.isEmpty {
-                        Text("No listings yet")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
+                        VStack(spacing: 12) {
+                            Image(systemName: "tray")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            Text("No listings yet")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text("Tap the + tab to create your first listing")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 30)
                     } else {
                         ForEach(myProducts) { product in
                             NavigationLink(destination: ProductDetailView(product: product)) {
@@ -68,19 +98,27 @@ struct ProfileView: View {
                                             .font(.headline)
                                             .lineLimit(2)
                                         Text("$\(product.price, specifier: "%.2f")")
+                                            .font(.subheadline)
                                             .foregroundColor(.green)
                                             .fontWeight(.semibold)
                                         Text(product.category)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.blue.opacity(0.2))
+                                            .foregroundColor(.blue)
+                                            .cornerRadius(4)
                                     }
                                 }
                                 .padding(.vertical, 4)
                             }
                         }
                     }
+                } header: {
+                    Text("My Listings (\(myProducts.count))")
                 }
                 
+                // Logout Section
                 Section {
                     Button(role: .destructive, action: {
                         authViewModel.logout()
@@ -88,6 +126,7 @@ struct ProfileView: View {
                         HStack {
                             Spacer()
                             Text("Logout")
+                                .fontWeight(.medium)
                             Spacer()
                         }
                     }
@@ -105,10 +144,6 @@ struct ProfileView: View {
     
     func loadMyProducts() async {
         guard let userID = Auth.auth().currentUser?.uid else {
-            await MainActor.run { 
-                errorMessage = "User not authenticated"
-                isLoading = false
-            }
             return
         }
         
@@ -119,14 +154,10 @@ struct ProfileView: View {
             await MainActor.run {
                 myProducts = products
                 isLoading = false
-                errorMessage = nil
             }
         } catch {
             print("Error loading products: \(error)")
-            await MainActor.run { 
-                errorMessage = error.localizedDescription
-                isLoading = false 
-            }
+            await MainActor.run { isLoading = false }
         }
     }
 }

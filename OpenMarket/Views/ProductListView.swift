@@ -14,7 +14,7 @@ struct ProductListView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 0) {
                 // Search bar
                 HStack {
                     TextField("Search products...", text: $searchText)
@@ -33,29 +33,23 @@ struct ProductListView: View {
                             .cornerRadius(10)
                     }
                 }
-                .padding(.horizontal)
+                .padding()
                 
                 if viewModel.isLoading {
+                    Spacer()
                     ProgressView()
-                        .padding()
-                } else if let error = viewModel.errorMessage {
-                    VStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.orange)
-                        Text("Error")
+                    Spacer()
+                } else if viewModel.filteredProducts.isEmpty {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        Text("No products found")
                             .font(.headline)
-                        Text(error)
                             .foregroundColor(.secondary)
-                            .font(.caption)
-                        Button("Retry") {
-                            Task {
-                                await viewModel.fetchProducts()
-                            }
-                        }
-                        .padding(.top, 10)
                     }
-                    .padding()
+                    Spacer()
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 15) {
@@ -86,7 +80,8 @@ struct ProductCardView: View {
     let isNearby: Bool
     
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Image
             AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
                 image
                     .resizable()
@@ -97,37 +92,41 @@ struct ProductCardView: View {
             }
             .frame(height: 150)
             .clipped()
-            .cornerRadius(10)
             
-            VStack(alignment: .leading, spacing: 4) {
+            // Info
+            VStack(alignment: .leading, spacing: 6) {
                 Text(product.title)
                     .font(.headline)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .foregroundColor(.primary)
+                    .frame(height: 40, alignment: .top)
                 
                 Text("$\(product.price, specifier: "%.2f")")
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.green)
                 
-                HStack {
+                HStack(spacing: 6) {
                     Text(product.category)
                         .font(.caption)
-                        .padding(4)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
                         .background(Color.blue.opacity(0.2))
-                        .cornerRadius(5)
+                        .foregroundColor(.blue)
+                        .cornerRadius(4)
                     
                     if isNearby {
                         Text("Nearby")
                             .font(.caption)
-                            .padding(4)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
                             .background(Color.orange.opacity(0.2))
                             .foregroundColor(.orange)
-                            .cornerRadius(5)
+                            .cornerRadius(4)
                     }
                 }
                 
-                HStack {
+                HStack(spacing: 2) {
                     Image(systemName: "star.fill")
                         .foregroundColor(.yellow)
                         .font(.caption)
@@ -136,10 +135,10 @@ struct ProductCardView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(8)
+            .padding(10)
         }
         .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(radius: 3)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 }

@@ -11,9 +11,15 @@ struct ProductDetailView: View {
     
     private let firebaseManager = FirebaseManager.shared
     
+    // Check if current user is the seller
+    private var isOwnProduct: Bool {
+        guard let currentUserID = firebaseManager.currentUser?.id else { return false }
+        return currentUserID == product.sellerID
+    }
+    
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Product Image
                 AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
                     image
@@ -26,12 +32,11 @@ struct ProductDetailView: View {
                 .frame(height: 300)
                 .clipped()
                 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 16) {
                     // Title
                     Text(product.title)
                         .font(.title)
                         .fontWeight(.bold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     
                     // Price
                     Text("$\(product.price, specifier: "%.2f")")
@@ -40,22 +45,34 @@ struct ProductDetailView: View {
                         .fontWeight(.semibold)
                     
                     // Category
-                    Text(product.category)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.blue.opacity(0.2))
-                        .foregroundColor(.blue)
-                        .cornerRadius(8)
+                    HStack {
+                        Text(product.category)
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.blue)
+                            .cornerRadius(8)
+                        
+                        HStack(spacing: 2) {
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                                .font(.caption)
+                            Text(String(format: "%.1f", product.averageRating))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     
                     Divider()
                     
                     // Description
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Description")
                             .font(.headline)
                         Text(product.description)
+                            .font(.body)
                             .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                     
                     Divider()
@@ -80,6 +97,7 @@ struct ProductDetailView: View {
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(seller.name)
+                                        .font(.body)
                                         .fontWeight(.semibold)
                                     HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
@@ -87,13 +105,15 @@ struct ProductDetailView: View {
                                             .font(.caption)
                                         Text(String(format: "%.1f", seller.averageRating))
                                             .font(.caption)
+                                            .foregroundColor(.secondary)
                                     }
                                 }
+                                Spacer()
                             }
                         }
+                        
+                        Divider()
                     }
-                    
-                    Divider()
                     
                     // Reviews
                     VStack(alignment: .leading, spacing: 8) {
@@ -102,8 +122,9 @@ struct ProductDetailView: View {
                         
                         if reviews.isEmpty {
                             Text("No reviews yet")
+                                .font(.body)
                                 .foregroundColor(.secondary)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 4)
                         } else {
                             ForEach(reviews.prefix(3)) { review in
                                 ReviewRowView(review: review)
@@ -111,40 +132,83 @@ struct ProductDetailView: View {
                         }
                     }
                     
-                    // Action Buttons
-                    VStack(spacing: 12) {
-                        Button(action: {
-                            showChat = true
-                        }) {
-                            Label("Contact Seller", systemImage: "message.fill")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        
-                        HStack(spacing: 12) {
+                    // Action Buttons (only show if NOT own product)
+                    if !isOwnProduct {
+                        VStack(spacing: 12) {
                             Button(action: {
-                                Task {
-                                    await toggleFavorite()
-                                }
+                                showChat = true
                             }) {
-                                Label(isFavorite ? "Unfavorite" : "Favorite", 
-                                      systemImage: isFavorite ? "heart.fill" : "heart")
-                                    .font(.subheadline)
+                                Label("Contact Seller", systemImage: "message.fill")
+                                    .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(isFavorite ? Color.red : Color.gray.opacity(0.2))
-                                    .foregroundColor(isFavorite ? .white : .primary)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
+                            
+                            HStack(spacing: 12) {
+                                Button(action: {
+                                    Task {
+                                        await toggleFavorite()
+                                    }
+                                }) {
+                                    Label(isFavorite ? "Unfavorite" : "Favorite", 
+                                          systemImage: isFavorite ? "heart.fill" : "heart")
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(isFavorite ? Color.red : Color.gray.opacity(0.2))
+                                        .foregroundColor(isFavorite ? .white : .primary)
+                                        .cornerRadius(10)
+                                }
+                                
+                                Button(action: {
+                                    showMap = true
+                                }) {
+                                    Label("View Map", systemImage: "map.fill")
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.green)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(10)
+                                }
+                            }
+                            
+                            Button(action: {
+                                showPayment = true
+                            }) {
+                                Label("Buy Now", systemImage: "cart.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.orange)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
+                        }
+                        .padding(.top, 8)
+                    } else {
+                        // Show message if it's user's own product
+                        VStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                Text("This is your listing")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(10)
                             
                             Button(action: {
                                 showMap = true
                             }) {
-                                Label("Map", systemImage: "map.fill")
-                                    .font(.subheadline)
+                                Label("View on Map", systemImage: "map.fill")
+                                    .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background(Color.green)
@@ -152,19 +216,8 @@ struct ProductDetailView: View {
                                     .cornerRadius(10)
                             }
                         }
-                        
-                        Button(action: {
-                            showPayment = true
-                        }) {
-                            Label("Buy Now", systemImage: "cart.fill")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
+                        .padding(.top, 8)
                     }
-                    .padding(.top, 8)
                 }
                 .padding()
             }
@@ -216,7 +269,7 @@ struct ReviewRowView: View {
     let review: Review
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 ForEach(0..<5) { index in
                     Image(systemName: index < review.rating ? "star.fill" : "star")
@@ -230,9 +283,9 @@ struct ReviewRowView: View {
             }
             Text(review.comment)
                 .font(.subheadline)
-                .fixedSize(horizontal: false, vertical: true)
+                .foregroundColor(.primary)
         }
-        .padding()
+        .padding(12)
         .background(Color(.systemGray6))
         .cornerRadius(8)
     }
