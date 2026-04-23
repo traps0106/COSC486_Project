@@ -1,5 +1,7 @@
 import Foundation
 import Combine
+import FirebaseAuth
+
 class AuthViewModel: ObservableObject {
     @Published var isAuthenticated = false
     @Published var errorMessage: String?
@@ -12,9 +14,11 @@ class AuthViewModel: ObservableObject {
     
     func checkAuthStatus() {
         Task {
+            // Check if user is already logged in via Firebase Auth
+            let isLoggedIn = Auth.auth().currentUser != nil
             await firebaseManager.fetchCurrentUser()
             await MainActor.run {
-                isAuthenticated = firebaseManager.currentUser != nil
+                isAuthenticated = isLoggedIn && firebaseManager.currentUser != nil
             }
         }
     }

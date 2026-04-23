@@ -1,6 +1,8 @@
 import Foundation
 import FirebaseFirestore
 import Combine
+import FirebaseAuth
+
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var messageText = ""
@@ -16,7 +18,7 @@ class ChatViewModel: ObservableObject {
     }
     
     func listenToMessages() {
-        guard let currentUserID = firebaseManager.currentUser?.id else { return }
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
         
         listener = firebaseManager.listenToMessages(userID: currentUserID, otherUserID: otherUserID) { [weak self] messages in
             DispatchQueue.main.async {

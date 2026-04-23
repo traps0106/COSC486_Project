@@ -28,7 +28,7 @@ class FirebaseManager: ObservableObject {
         let userID = result.user.uid
         
         let newUser = User(
-            id: userID,
+            id: nil,  // Let Firestore handle the document ID
             name: name,
             email: email,
             profileImageURL: nil,

@@ -78,6 +78,9 @@ struct ProductDetailView: View {
                                 }
                             }
                         }
+                    } else {
+                        ProgressView()
+                            .padding()
                     }
                     
                     Divider()

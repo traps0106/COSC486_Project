@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import Combine
+import FirebaseAuth
 struct AddProductView: View {
     @State private var title = ""
     @State private var description = ""
@@ -10,6 +11,8 @@ struct AddProductView: View {
     @State private var showImagePicker = false
     @State private var isLoading = false
     @State private var showSuccess = false
+    @State private var showError = false
+    @State private var errorMessage = ""
     
     @StateObject private var locationManager = LocationManager()
     private let firebaseManager = FirebaseManager.shared
@@ -82,6 +85,11 @@ struct AddProductView: View {
             } message: {
                 Text("Your product has been listed!")
             }
+            .alert("Error", isPresented: $showError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     
@@ -143,6 +151,8 @@ struct AddProductView: View {
                 print(" Full error: \(error)")
                 await MainActor.run {
                     isLoading = false
+                    errorMessage = error.localizedDescription
+                    showError = true
                 }
             }
         }

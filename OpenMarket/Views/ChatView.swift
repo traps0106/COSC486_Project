@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
@@ -18,7 +19,8 @@ struct ChatView: View {
                     ScrollView {
                         LazyVStack {
                             ForEach(viewModel.messages) { message in
-                                MessageBubble(message: message, isCurrentUser: message.senderID == FirebaseManager.shared.currentUser?.id)
+                                let currentUserID = Auth.auth().currentUser?.uid ?? ""
+                                MessageBubble(message: message, isCurrentUser: message.senderID == currentUserID)
                                     .id(message.id)
                             }
                         }

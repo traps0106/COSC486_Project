@@ -1,9 +1,11 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var myProducts: [Product] = []
     @State private var isLoading = false
+    @State private var errorMessage: String?
     
     private let firebaseManager = FirebaseManager.shared
     
@@ -102,7 +104,11 @@ struct ProfileView: View {
     }
     
     func loadMyProducts() async {
-        guard let userID = firebaseManager.currentUser?.id else {
+        guard let userID = Auth.auth().currentUser?.uid else {
+            await MainActor.run { 
+                errorMessage = "User not authenticated"
+                isLoading = false
+            }
             return
         }
         
@@ -113,10 +119,14 @@ struct ProfileView: View {
             await MainActor.run {
                 myProducts = products
                 isLoading = false
+                errorMessage = nil
             }
         } catch {
             print("Error loading products: \(error)")
-            await MainActor.run { isLoading = false }
+            await MainActor.run { 
+                errorMessage = error.localizedDescription
+                isLoading = false 
+            }
         }
     }
 }

@@ -38,6 +38,24 @@ struct ProductListView: View {
                 if viewModel.isLoading {
                     ProgressView()
                         .padding()
+                } else if let error = viewModel.errorMessage {
+                    VStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.orange)
+                        Text("Error")
+                            .font(.headline)
+                        Text(error)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        Button("Retry") {
+                            Task {
+                                await viewModel.fetchProducts()
+                            }
+                        }
+                        .padding(.top, 10)
+                    }
+                    .padding()
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 15) {
