@@ -14,30 +14,48 @@ struct ChatView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack {
-                            ForEach(viewModel.messages) { message in
-                                let currentUserID = Auth.auth().currentUser?.uid ?? ""
-                                MessageBubble(message: message, isCurrentUser: message.senderID == currentUserID)
-                                    .id(message.id)
-                            }
-                        }
-                        .padding()
+            VStack(spacing: 0) {
+                if viewModel.messages.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        Text("No messages yet")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Say hi to \(otherUserName)!")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                    .onChange(of: viewModel.messages.count) { oldValue, newValue in
-                        if let lastMessage = viewModel.messages.last {
-                            withAnimation {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(viewModel.messages) { message in
+                                    let currentUserID = Auth.auth().currentUser?.uid ?? ""
+                                    MessageBubble(message: message, isCurrentUser: message.senderID == currentUserID)
+                                        .id(message.id)
+                                }
+                            }
+                            .padding()
+                        }
+                        .onChange(of: viewModel.messages.count) { oldValue, newValue in
+                            if let lastMessage = viewModel.messages.last {
+                                withAnimation {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
                     }
                 }
                 
-                HStack {
-                    TextField("Message", text: $viewModel.messageText)
+                Divider()
+                
+                HStack(spacing: 12) {
+                    TextField("Message", text: $viewModel.messageText, axis: .vertical)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .lineLimit(1...4)
                     
                     Button(action: {
                         Task {
@@ -45,11 +63,13 @@ struct ChatView: View {
                         }
                     }) {
                         Image(systemName: "paperplane.fill")
-                            .foregroundColor(.blue)
+                            .font(.title3)
+                            .foregroundColor(viewModel.messageText.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : .blue)
                     }
                     .disabled(viewModel.messageText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 .padding()
+                .background(Color(.systemBackground))
             }
             .navigationTitle(otherUserName)
             .navigationBarTitleDisplayMode(.inline)
@@ -69,22 +89,24 @@ struct MessageBubble: View {
     let isCurrentUser: Bool
     
     var body: some View {
-        HStack {
-            if isCurrentUser { Spacer() }
+        HStack(alignment: .bottom, spacing: 8) {
+            if isCurrentUser { Spacer(minLength: 60) }
             
-            VStack(alignment: isCurrentUser ? .trailing : .leading) {
+            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
                 Text(message.text)
-                    .padding(12)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .background(isCurrentUser ? Color.blue : Color(.systemGray5))
                     .foregroundColor(isCurrentUser ? .white : .primary)
                     .cornerRadius(16)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 Text(message.timestamp, style: .time)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
             
-            if !isCurrentUser { Spacer() }
+            if !isCurrentUser { Spacer(minLength: 60) }
         }
     }
 }

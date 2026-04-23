@@ -11,12 +11,15 @@ struct ProductDetailView: View {
     
     private let firebaseManager = FirebaseManager.shared
     
-    private var isOwnProduct: Bool {
-        guard let currentUserID = firebaseManager.currentUser?.id else { return false }
-        return currentUserID == product.sellerID
-    }
     
-    var body: some View {
+    
+    private var isOwnProduct: Bool {
+    guard let currentUserID = firebaseManager.currentUser?.id else { return false }
+    return currentUserID == product.sellerID
+}
+
+var body: some View {
+    GeometryReader { geometry in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
@@ -28,7 +31,7 @@ struct ProductDetailView: View {
                         .fill(Color.gray.opacity(0.3))
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 300)
+                .frame(height: geometry.size.height * 0.35)
                 .clipped()
                 
                 VStack(alignment: .leading, spacing: 16) {
@@ -86,7 +89,7 @@ struct ProductDetailView: View {
                                         .aspectRatio(contentMode: .fill)
                                 } placeholder: {
                                     Circle()
-                                        .fill(Color.gray.opacity(0.3))
+                                        .fill(Color.blue.opacity(0.2))
                                         .overlay(
                                             Text(String(seller.name.prefix(1)))
                                                 .font(.title3)
@@ -220,24 +223,25 @@ struct ProductDetailView: View {
                 .padding()
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showChat) {
-            if let seller = seller {
-                ChatView(otherUserID: seller.id ?? "", otherUserName: seller.name)
-            }
-        }
-        .sheet(isPresented: $showMap) {
-            ProductMapView(product: product)
-        }
-        .sheet(isPresented: $showPayment) {
-            if let seller = seller {
-                PaymentView(product: product, seller: seller)
-            }
-        }
-        .task {
-            await loadData()
+    }
+    .navigationBarTitleDisplayMode(.inline)
+    .sheet(isPresented: $showChat) {
+        if let seller = seller {
+            ChatView(otherUserID: seller.id ?? "", otherUserName: seller.name)
         }
     }
+    .sheet(isPresented: $showMap) {
+        ProductMapView(product: product)
+    }
+    .sheet(isPresented: $showPayment) {
+        if let seller = seller {
+            PaymentView(product: product, seller: seller)
+        }
+    }
+    .task {
+        await loadData()
+    }
+}
     
     func loadData() async {
         do {

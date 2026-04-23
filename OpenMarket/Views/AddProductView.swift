@@ -22,19 +22,22 @@ struct AddProductView: View {
         NavigationStack {
             Form {
                 Section("Product Image") {
-                    if let image = selectedImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 200)
-                            .cornerRadius(10)
-                    }
-                    
-                    Button(action: { showImagePicker = true }) {
-                        Label(selectedImage == nil ? "Select Image" : "Change Image", 
-                              systemImage: "photo")
-                    }
-                }
+    if let image = selectedImage {
+        GeometryReader { geometry in
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: geometry.size.width)
+                .cornerRadius(10)
+        }
+        .frame(height: 200)
+    }
+    
+    Button(action: { showImagePicker = true }) {
+        Label(selectedImage == nil ? "Select Image" : "Change Image", 
+              systemImage: "photo")
+    }
+}
                 
                 Section("Product Details") {
                     TextField("Title", text: $title)

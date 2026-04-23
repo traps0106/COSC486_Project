@@ -106,63 +106,67 @@ struct ProductCardView: View {
     let isNearby: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-            }
-            .frame(height: 150)
-            .clipped()
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text(product.title)
-                    .font(.headline)
-                    .lineLimit(2)
-                    .foregroundColor(.primary)
-                    .frame(height: 40, alignment: .top)
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: 0) {
+                AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                }
+                .frame(width: geometry.size.width, height: geometry.size.width * 0.75)
+                .clipped()
                 
-                Text("$\(product.price, specifier: "%.2f")")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.green)
-                
-                HStack(spacing: 6) {
-                    Text(product.category)
-                        .font(.caption)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.blue.opacity(0.2))
-                        .foregroundColor(.blue)
-                        .cornerRadius(4)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(product.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .foregroundColor(.primary)
+                        .frame(height: 40, alignment: .top)
+                        .fixedSize(horizontal: false, vertical: true)
                     
-                    if isNearby {
-                        Text("Nearby")
+                    Text("$\(product.price, specifier: "%.2f")")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                    
+                    HStack(spacing: 6) {
+                        Text(product.category)
                             .font(.caption)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Color.orange.opacity(0.2))
-                            .foregroundColor(.orange)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.blue)
                             .cornerRadius(4)
+                        
+                        if isNearby {
+                            Text("Nearby")
+                                .font(.caption)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Color.orange.opacity(0.2))
+                                .foregroundColor(.orange)
+                                .cornerRadius(4)
+                        }
+                    }
+                    
+                    HStack(spacing: 2) {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
+                        Text(String(format: "%.1f", product.averageRating))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
-                
-                HStack(spacing: 2) {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                        .font(.caption)
-                    Text(String(format: "%.1f", product.averageRating))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                .padding(10)
             }
-            .padding(10)
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .aspectRatio(0.75, contentMode: .fit)
     }
 }
