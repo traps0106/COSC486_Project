@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @EnvironmentObject var authViewModel: AuthViewModel
-    
     var body: some View {
         TabView {
             ProductListView()
@@ -13,6 +11,11 @@ struct MainTabView: View {
             FavoritesView()
                 .tabItem {
                     Label("Favorites", systemImage: "heart.fill")
+                }
+            
+            ConversationsListView()
+                .tabItem {
+                    Label("Messages", systemImage: "message.fill")
                 }
             
             AddProductView()
