@@ -192,23 +192,34 @@ class FirebaseManager: ObservableObject {
     // MARK: - Reviews
     
     func addReview(productID: String, sellerID: String, rating: Int, comment: String) async throws {
-        guard let userID = auth.currentUser?.uid else { return }
-        
-        let review = Review(
-            id: nil,
-            productID: productID,
-            reviewerID: userID,
-            sellerID: sellerID,
-            rating: rating,
-            comment: comment,
-            timestamp: Date()
-        )
-        
-        try db.collection("reviews").addDocument(from: review)
-        
-        try await updateSellerRating(sellerID: sellerID)
-        try await updateProductRating(productID: productID)
+    guard let userID = auth.currentUser?.uid else {
+        throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
     }
+    
+    print("📝 Creating review document...")
+    
+    let review = Review(
+        id: nil,
+        productID: productID,
+        reviewerID: userID,
+        sellerID: sellerID,
+        rating: rating,
+        comment: comment,
+        timestamp: Date()
+    )
+    
+    print(" Adding to Firestore...")
+    let docRef = try db.collection("reviews").addDocument(from: review)
+    print(" Review added with ID: \(docRef.documentID)")
+    
+    print(" Updating seller rating...")
+    try await updateSellerRating(sellerID: sellerID)
+    print(" Seller rating updated")
+    
+    print(" Updating product rating...")
+    try await updateProductRating(productID: productID)
+    print(" Product rating updated")
+}
     
     func fetchReviewsForSeller(sellerID: String) async throws -> [Review] {
         let snapshot = try await db.collection("reviews")
