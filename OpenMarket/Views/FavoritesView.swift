@@ -26,19 +26,20 @@ struct FavoritesView: View {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 15) {
                             ForEach(viewModel.favorites) { product in
-                                NavigationLink(destination: ProductDetailView(product: product)) {
-                                    ProductCardView(product: product, isNearby: false)
-                                }
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        Task {
-                                            await viewModel.removeFavorite(productID: product.id ?? "")
-                                        }
-                                    } label: {
-                                        Label("Remove", systemImage: "trash")
-                                    }
-                                }
-                            }
+    NavigationLink(destination: ProductDetailView(product: product)) {
+        ProductCardView(product: product, isNearby: false)
+    }
+    .buttonStyle(PlainButtonStyle())
+    .contextMenu {
+        Button(role: .destructive) {
+            Task {
+                await viewModel.removeFavorite(productID: product.id ?? "")
+            }
+        } label: {
+            Label("Remove", systemImage: "trash")
+        }
+    }
+}
                         }
                         .padding()
                     }
