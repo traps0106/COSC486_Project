@@ -132,24 +132,27 @@ class FirebaseManager: ObservableObject {
         return try? snapshot.data(as: Product.self)
     }
     
-    func deleteProduct(productID: String) async throws {
-        guard let userID = auth.currentUser?.uid else {
-            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
-        }
-        
-        let snapshot = try await db.collection("products").document(productID).getDocument()
-        guard let product = try? snapshot.data(as: Product.self) else {
-            throw NSError(domain: "Product", code: 404, userInfo: [NSLocalizedDescriptionKey: "Product not found"])
-        }
-        guard product.sellerID == userID else {
-            throw NSError(domain: "Auth", code: 403, userInfo: [NSLocalizedDescriptionKey: "You can only delete your own listings"])
-        }
-        
-        try await db.collection("products").document(productID).delete()
+    func updateProduct(productID: String, title: String, description: String, price: Double, category: String) async throws {
+        try await db.collection("products").document(productID).updateData([
+            "title": title,
+            "description": description,
+            "price": price,
+            "category": category
+        ])
     }
     
-    // Deducts the purchased quantity from the product's stock.
-    // Throws an error if there's not enough stock available.
+    func deleteProduct(productID: String) async throws {
+        try await db.collection("products").document(productID).delete()
+        
+        let favoritesSnapshot = try await db.collection("favorites")
+            .whereField("productID", isEqualTo: productID)
+            .getDocuments()
+        
+        for document in favoritesSnapshot.documents {
+            try await document.reference.delete()
+        }
+    }
+    
     func purchaseProduct(productID: String, quantityToBuy: Int) async throws {
         let ref = db.collection("products").document(productID)
         
@@ -206,18 +209,20 @@ class FirebaseManager: ObservableObject {
         }
     }
     
-    func fetchUserFavorites() async throws -> [Product] {
+    func fetchFavorites() async throws -> [Product] {
         guard let userID = auth.currentUser?.uid else { return [] }
         
         let snapshot = try await db.collection("favorites")
             .whereField("userID", isEqualTo: userID)
             .getDocuments()
         
-        let favorites = snapshot.documents.compactMap { try? $0.data(as: Favorite.self) }
-        var products: [Product] = []
+        let productIDs = snapshot.documents.compactMap { doc -> String? in
+            (try? doc.data(as: Favorite.self))?.productID
+        }
         
-        for favorite in favorites {
-            if let product = try? await fetchProduct(productID: favorite.productID) {
+        var products: [Product] = []
+        for productID in productIDs {
+            if let product = try? await fetchProduct(productID: productID) {
                 products.append(product)
             }
         }
@@ -239,54 +244,43 @@ class FirebaseManager: ObservableObject {
     // MARK: - Reviews
     
     func addReview(productID: String, sellerID: String, rating: Int, comment: String) async throws {
-    guard let userID = auth.currentUser?.uid else {
-        throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        guard let userID = auth.currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        
+        let review = Review(
+            id: nil,
+            productID: productID,
+            reviewerID: userID,
+            sellerID: sellerID,
+            rating: rating,
+            comment: comment,
+            timestamp: Date()
+        )
+        
+        let docRef = try db.collection("reviews").addDocument(from: review)
+        
+        try await updateSellerRating(sellerID: sellerID)
+        try await updateProductRating(productID: productID)
     }
     
-    print("Creating review document...")
-    
-    let review = Review(
-        id: nil,
-        productID: productID,
-        reviewerID: userID,
-        sellerID: sellerID,
-        rating: rating,
-        comment: comment,
-        timestamp: Date()
-    )
-    
-    print(" Adding to Firestore...")
-    let docRef = try db.collection("reviews").addDocument(from: review)
-    print(" Review added with ID: \(docRef.documentID)")
-    
-    print(" Updating seller rating...")
-    try await updateSellerRating(sellerID: sellerID)
-    print(" Seller rating updated")
-    
-    print(" Updating product rating...")
-    try await updateProductRating(productID: productID)
-    print(" Product rating updated")
-}
-    
     func fetchReviewsForSeller(sellerID: String) async throws -> [Review] {
-    let snapshot = try await db.collection("reviews")
-        .whereField("sellerID", isEqualTo: sellerID)
-        .order(by: "timestamp", descending: false) 
-        .getDocuments()
-    
-    // Reverse array to show newest first
-    return snapshot.documents.compactMap { try? $0.data(as: Review.self) }.reversed()
-}
+        let snapshot = try await db.collection("reviews")
+            .whereField("sellerID", isEqualTo: sellerID)
+            .order(by: "timestamp", descending: false)
+            .getDocuments()
+        
+        return snapshot.documents.compactMap { try? $0.data(as: Review.self) }.reversed()
+    }
     
     func fetchReviewsForProduct(productID: String) async throws -> [Review] {
-    let snapshot = try await db.collection("reviews")
-        .whereField("productID", isEqualTo: productID)
-        .order(by: "timestamp", descending: false)  // ← CHANGED FROM true TO false
-        .getDocuments()
-    
-    // Reverse array to show newest first
-    return snapshot.documents.compactMap { try? $0.data(as: Review.self) }.reversed()
-}
+        let snapshot = try await db.collection("reviews")
+            .whereField("productID", isEqualTo: productID)
+            .order(by: "timestamp", descending: false)
+            .getDocuments()
+        
+        return snapshot.documents.compactMap { try? $0.data(as: Review.self) }.reversed()
+    }
     
     private func updateSellerRating(sellerID: String) async throws {
         let reviews = try await fetchReviewsForSeller(sellerID: sellerID)
@@ -433,31 +427,4 @@ class FirebaseManager: ObservableObject {
         let snapshot = try await db.collection("users").document(userID).getDocument()
         return try? snapshot.data(as: User.self)
     }
-    // MARK: - Product Management
-
-func updateProduct(productID: String, title: String, description: String, 
-                   price: Double, category: String) async throws {
-    try await db.collection("products").document(productID).updateData([
-        "title": title,
-        "description": description,
-        "price": price,
-        "category": category
-    ])
-}
-
-func deleteProduct(productID: String) async throws {
-    // Delete the product
-    try await db.collection("products").document(productID).delete()
-    
-    // Also delete related favorites
-    let favoritesSnapshot = try await db.collection("favorites")
-        .whereField("productID", isEqualTo: productID)
-        .getDocuments()
-    
-    for document in favoritesSnapshot.documents {
-        try await document.reference.delete()
-    }
-    
-    // Note: Reviews are kept for seller history
-}
 }
