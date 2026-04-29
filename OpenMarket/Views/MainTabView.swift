@@ -5,7 +5,7 @@ struct MainTabView: View {
         TabView {
             ProductListView()
                 .tabItem {
-                    Label("Home", systemImage: "house.fill")
+                    Label("Market", systemImage: "cart.fill")
                 }
             
             FavoritesView()

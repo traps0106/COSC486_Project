@@ -12,17 +12,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct OpenMarketApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @StateObject private var authViewModel = AuthViewModel()
     
     var body: some Scene {
         WindowGroup {
-            if authViewModel.isAuthenticated {
-                MainTabView()
-                    .environmentObject(authViewModel)
-            } else {
-                LoginView()
-                    .environmentObject(authViewModel)
-            }
+            SplashScreenView()
         }
     }
 }

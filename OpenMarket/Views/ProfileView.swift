@@ -5,6 +5,8 @@ struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var myProducts: [Product] = []
     @State private var isLoading = false
+    @State private var showSettings = false
+    @StateObject private var settings = AppSettings.shared
     
     private let firebaseManager = FirebaseManager.shared
     
@@ -95,7 +97,7 @@ struct ProfileView: View {
                                             .font(.headline)
                                             .lineLimit(2)
                                             .fixedSize(horizontal: false, vertical: true)
-                                        Text("BD \(product.price, specifier: "%.2f")")
+                                        Text("\(settings.currency.symbol) \(product.price, specifier: "%.2f")")
                                             .font(.subheadline)
                                             .foregroundColor(.green)
                                             .fontWeight(.semibold)
@@ -106,17 +108,9 @@ struct ProfileView: View {
                                             .background(Color.blue.opacity(0.2))
                                             .foregroundColor(.blue)
                                             .cornerRadius(4)
-                                        Text(product.quantity == 0 ? "Out of Stock" : "\(product.quantity) in stock")
-                                            .font(.caption)
-                                            .foregroundColor(product.quantity == 0 ? .red : .secondary)
                                     }
                                 }
                                 .padding(.vertical, 4)
-                            }
-                        }
-                        .onDelete { indexSet in
-                            Task {
-                                await deleteProducts(at: indexSet)
                             }
                         }
                     }
@@ -138,6 +132,19 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showSettings = true
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+            }
             .refreshable {
                 await loadMyProducts()
             }
@@ -163,21 +170,6 @@ struct ProfileView: View {
         } catch {
             print("Error loading products: \(error)")
             await MainActor.run { isLoading = false }
-        }
-    }
-    
-    func deleteProducts(at indexSet: IndexSet) async {
-        for index in indexSet {
-            let product = myProducts[index]
-            guard let productID = product.id else { continue }
-            do {
-                try await firebaseManager.deleteProduct(productID: productID)
-                await MainActor.run {
-                    myProducts.remove(at: index)
-                }
-            } catch {
-                print("Error deleting product: \(error)")
-            }
         }
     }
 }

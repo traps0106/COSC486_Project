@@ -4,6 +4,7 @@ import CoreLocation
 struct ProductListView: View {
     @StateObject private var viewModel = ProductViewModel()
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var settings = AppSettings.shared
     @State private var searchText = ""
     @State private var showFilters = false
     
@@ -12,9 +13,27 @@ struct ProductListView: View {
         GridItem(.flexible())
     ]
     
+    private var userName: String {
+        FirebaseManager.shared.currentUser?.name ?? "Guest"
+    }
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Hello, \(userName)! 👋")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text("What are you looking for today?")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding()
+                .background(Color(.systemBackground))
+                
                 HStack {
                     TextField("Search products...", text: $searchText)
                         .padding(10)
@@ -32,7 +51,8 @@ struct ProductListView: View {
                             .cornerRadius(10)
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.bottom)
                 
                 if viewModel.isLoading {
                     Spacer()
@@ -89,7 +109,8 @@ struct ProductListView: View {
                     }
                 }
             }
-            .navigationTitle("OpenMarket")
+            .navigationTitle("Market")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showFilters) {
                 FilterView(viewModel: viewModel)
             }
@@ -104,6 +125,7 @@ struct ProductListView: View {
 struct ProductCardView: View {
     let product: Product
     let isNearby: Bool
+    @StateObject private var settings = AppSettings.shared
     
     var body: some View {
         GeometryReader { geometry in
@@ -127,7 +149,7 @@ struct ProductCardView: View {
                         .frame(height: 40, alignment: .top)
                         .fixedSize(horizontal: false, vertical: true)
                     
-                    Text("BD \(product.price, specifier: "%.2f")")
+                    Text("\(settings.currency.symbol) \(product.price, specifier: "%.2f")")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.green)
