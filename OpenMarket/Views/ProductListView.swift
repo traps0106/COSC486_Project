@@ -127,7 +127,7 @@ struct ProductCardView: View {
                         .frame(height: 40, alignment: .top)
                         .fixedSize(horizontal: false, vertical: true)
                     
-                    Text("$\(product.price, specifier: "%.2f")")
+                    Text("BD \(product.price, specifier: "%.2f")")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.green)

@@ -45,7 +45,7 @@ var body: some View {
                         .fontWeight(.bold)
                         .fixedSize(horizontal: false, vertical: true)
                     
-                    Text("$\(product.price, specifier: "%.2f")")
+                    Text("BD \(product.price, specifier: "%.2f")")
                         .font(.title2)
                         .foregroundColor(.green)
                         .fontWeight(.semibold)

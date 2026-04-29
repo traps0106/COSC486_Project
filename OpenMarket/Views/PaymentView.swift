@@ -28,7 +28,7 @@ struct PaymentView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Product: \(product.title)")
-                        Text("Price per item: $\(product.price, specifier: "%.2f")")
+                        Text("Price per item: BD \(product.price, specifier: "%.2f")")
                         Text("Seller: \(seller.name)")
                         Text("Stock available: \(product.quantity)")
                             .foregroundColor(product.quantity == 0 ? .red : .secondary)

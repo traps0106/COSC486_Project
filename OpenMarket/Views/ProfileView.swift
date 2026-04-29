@@ -95,7 +95,7 @@ struct ProfileView: View {
                                             .font(.headline)
                                             .lineLimit(2)
                                             .fixedSize(horizontal: false, vertical: true)
-                                        Text("$\(product.price, specifier: "%.2f")")
+                                        Text("BD \(product.price, specifier: "%.2f")")
                                             .font(.subheadline)
                                             .foregroundColor(.green)
                                             .fontWeight(.semibold)
