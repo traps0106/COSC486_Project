@@ -6,7 +6,17 @@ struct PaymentView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showReview = false
     @State private var paymentComplete = false
-    
+    @State private var quantityToBuy = 1
+    @State private var isProcessing = false
+    @State private var showError = false
+    @State private var errorMessage = ""
+
+    private let firebaseManager = FirebaseManager.shared
+
+    var totalPrice: Double {
+        product.price * Double(quantityToBuy)
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
@@ -15,11 +25,27 @@ struct PaymentView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .padding(.top, 40)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
+
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("Product: \(product.title)")
-                        Text("Price: $\(product.price, specifier: "%.2f")")
+                        Text("Price per item: $\(product.price, specifier: "%.2f")")
                         Text("Seller: \(seller.name)")
+                        Text("Stock available: \(product.quantity)")
+                            .foregroundColor(product.quantity == 0 ? .red : .secondary)
+
+                        Divider()
+
+                        Stepper("Quantity: \(quantityToBuy)", value: $quantityToBuy, in: 1...max(1, product.quantity))
+
+                        HStack {
+                            Text("Total:")
+                                .fontWeight(.semibold)
+                            Spacer()
+                            Text("$\(totalPrice, specifier: "%.2f")")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.green)
+                        }
                     }
                     .font(.headline)
                     .padding()
@@ -27,35 +53,51 @@ struct PaymentView: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
                     .padding()
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        paymentComplete = true
-                    }) {
-                        Text("Complete Purchase")
-                            .frame(maxWidth: .infinity)
+
+                    if product.quantity == 0 {
+                        Text("Out of Stock")
+                            .font(.headline)
+                            .foregroundColor(.red)
                             .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
+                    }
+
+                    Spacer()
+
+                    Button(action: completePurchase) {
+                        if isProcessing {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
+                        } else {
+                            Text("Complete Purchase")
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                     .padding()
+                    .background(product.quantity == 0 ? Color.gray : Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .padding()
+                    .disabled(product.quantity == 0 || isProcessing)
+
                 } else {
                     VStack(spacing: 20) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 80))
                             .foregroundColor(.green)
-                        
+
                         Text("Purchase Complete!")
                             .font(.title)
                             .fontWeight(.bold)
-                        
-                        Text("Thank you for your purchase")
+
+                        Text("You bought \(quantityToBuy) x \(product.title)")
                             .foregroundColor(.secondary)
-                        
+                            .multilineTextAlignment(.center)
+
                         Spacer()
-                        
+
                         Button(action: {
                             showReview = true
                         }) {
@@ -66,7 +108,7 @@ struct PaymentView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
-                        
+
                         Button("Close") {
                             dismiss()
                         }
@@ -80,6 +122,32 @@ struct PaymentView: View {
                 ReviewView(product: product, seller: seller, onSubmit: {
                     dismiss()
                 })
+            }
+            .alert("Purchase Failed", isPresented: $showError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
+        }
+    }
+
+    private func completePurchase() {
+        guard let productID = product.id else { return }
+        isProcessing = true
+
+        Task {
+            do {
+                try await firebaseManager.purchaseProduct(productID: productID, quantityToBuy: quantityToBuy)
+                await MainActor.run {
+                    isProcessing = false
+                    paymentComplete = true
+                }
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
             }
         }
     }
@@ -178,12 +246,6 @@ struct ReviewView: View {
         
         Task {
             do {
-                print(" Submitting review...")
-                print("   Product ID: \(productID)")
-                print("   Seller ID: \(sellerID)")
-                print("   Rating: \(rating)")
-                print("   Comment: \(trimmedComment)")
-                
                 try await firebaseManager.addReview(
                     productID: productID,
                     sellerID: sellerID,
@@ -191,17 +253,12 @@ struct ReviewView: View {
                     comment: trimmedComment
                 )
                 
-                print(" Review submitted successfully!")
-                
                 await MainActor.run {
                     isSubmitting = false
                     dismiss()
                     onSubmit()
                 }
             } catch {
-                print(" Error submitting review: \(error)")
-                print("   Error details: \(error.localizedDescription)")
-                
                 await MainActor.run {
                     isSubmitting = false
                     errorMessage = error.localizedDescription

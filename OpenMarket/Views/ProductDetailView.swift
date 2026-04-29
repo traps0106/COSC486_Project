@@ -8,6 +8,11 @@ struct ProductDetailView: View {
     @State private var showChat = false
     @State private var showMap = false
     @State private var showPayment = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
+    @Environment(\.dismiss) private var dismiss
     
     private let firebaseManager = FirebaseManager.shared
     
@@ -61,6 +66,17 @@ var body: some View {
                             Text(String(format: "%.1f", product.averageRating))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "shippingbox.fill")
+                                .font(.caption)
+                                .foregroundColor(product.quantity == 0 ? .red : .gray)
+                            Text(product.quantity == 0 ? "Out of Stock" : "\(product.quantity) in stock")
+                                .font(.subheadline)
+                                .foregroundColor(product.quantity == 0 ? .red : .secondary)
                         }
                     }
                     
@@ -181,14 +197,15 @@ var body: some View {
                             Button(action: {
                                 showPayment = true
                             }) {
-                                Label("Buy Now", systemImage: "cart.fill")
+                                Label(product.quantity == 0 ? "Out of Stock" : "Buy Now", systemImage: "cart.fill")
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.orange)
+                                    .background(product.quantity == 0 ? Color.gray : Color.orange)
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
+                            .disabled(product.quantity == 0)
                         }
                         .padding(.top, 8)
                     } else {
@@ -216,6 +233,28 @@ var body: some View {
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
+                            
+                            Button(role: .destructive, action: {
+                                showDeleteConfirm = true
+                            }) {
+                                if isDeleting {
+                                    HStack {
+                                        Spacer()
+                                        ProgressView()
+                                        Spacer()
+                                    }
+                                    .padding()
+                                } else {
+                                    Label("Delete Listing", systemImage: "trash.fill")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                }
+                            }
+                            .background(Color.red.opacity(0.1))
+                            .foregroundColor(.red)
+                            .cornerRadius(10)
+                            .disabled(isDeleting)
                         }
                         .padding(.top, 8)
                     }
@@ -241,6 +280,19 @@ var body: some View {
     .task {
         await loadData()
     }
+    .confirmationDialog("Delete this listing?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+        Button("Delete", role: .destructive) {
+            deleteProduct()
+        }
+        Button("Cancel", role: .cancel) { }
+    } message: {
+        Text("This action cannot be undone.")
+    }
+    .alert("Error", isPresented: $showDeleteError) {
+        Button("OK") { }
+    } message: {
+        Text(deleteErrorMessage)
+    }
 }
     
     func loadData() async {
@@ -263,6 +315,27 @@ var body: some View {
             isFavorite.toggle()
         } catch {
             print("Error toggling favorite: \(error)")
+        }
+    }
+    
+    func deleteProduct() {
+        guard let productID = product.id else { return }
+        isDeleting = true
+        
+        Task {
+            do {
+                try await firebaseManager.deleteProduct(productID: productID)
+                await MainActor.run {
+                    isDeleting = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
+                    deleteErrorMessage = error.localizedDescription
+                    showDeleteError = true
+                }
+            }
         }
     }
 }

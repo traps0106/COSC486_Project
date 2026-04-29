@@ -5,6 +5,7 @@ struct AddProductView: View {
     @State private var title = ""
     @State private var description = ""
     @State private var price = ""
+    @State private var quantity = 1
     @State private var selectedCategory = "Electronics"
     @State private var selectedImage: UIImage?
     @State private var showImagePicker = false
@@ -51,6 +52,8 @@ struct AddProductView: View {
                             Text(category).tag(category)
                         }
                     }
+                    
+                    Stepper("Quantity: \(quantity)", value: $quantity, in: 1...999)
                 }
                 
                 Section("Location") {
@@ -145,7 +148,8 @@ struct AddProductView: View {
                     price: priceValue,
                     category: selectedCategory,
                     image: image,
-                    location: location.coordinate
+                    location: location.coordinate,
+                    quantity: quantity
                 )
                 
                 await MainActor.run {
@@ -166,6 +170,7 @@ struct AddProductView: View {
         title = ""
         description = ""
         price = ""
+        quantity = 1
         selectedImage = nil
         selectedCategory = "Electronics"
     }

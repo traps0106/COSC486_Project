@@ -14,6 +14,7 @@ struct Product: Identifiable, Codable {
     var longitude: Double
     var averageRating: Double
     var createdAt: Date
+    var quantity: Int
     
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -36,5 +37,6 @@ struct Product: Identifiable, Codable {
         case longitude
         case averageRating
         case createdAt
+        case quantity
     }
 }

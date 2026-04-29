@@ -64,7 +64,7 @@ class FirebaseManager: ObservableObject {
     
     // MARK: - Products
     
-    func addProduct(title: String, description: String, price: Double, category: String, image: UIImage?, location: CLLocationCoordinate2D) async throws -> String {
+    func addProduct(title: String, description: String, price: Double, category: String, image: UIImage?, location: CLLocationCoordinate2D, quantity: Int) async throws -> String {
         guard let userID = auth.currentUser?.uid else {
             throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
@@ -85,7 +85,8 @@ class FirebaseManager: ObservableObject {
             latitude: location.latitude,
             longitude: location.longitude,
             averageRating: 0.0,
-            createdAt: Date()
+            createdAt: Date(),
+            quantity: quantity
         )
         
         let docRef = try db.collection("products").addDocument(from: product)
@@ -129,6 +130,52 @@ class FirebaseManager: ObservableObject {
     func fetchProduct(productID: String) async throws -> Product? {
         let snapshot = try await db.collection("products").document(productID).getDocument()
         return try? snapshot.data(as: Product.self)
+    }
+    
+    func deleteProduct(productID: String) async throws {
+        guard let userID = auth.currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        
+        let snapshot = try await db.collection("products").document(productID).getDocument()
+        guard let product = try? snapshot.data(as: Product.self) else {
+            throw NSError(domain: "Product", code: 404, userInfo: [NSLocalizedDescriptionKey: "Product not found"])
+        }
+        guard product.sellerID == userID else {
+            throw NSError(domain: "Auth", code: 403, userInfo: [NSLocalizedDescriptionKey: "You can only delete your own listings"])
+        }
+        
+        try await db.collection("products").document(productID).delete()
+    }
+    
+    // Deducts the purchased quantity from the product's stock.
+    // Throws an error if there's not enough stock available.
+    func purchaseProduct(productID: String, quantityToBuy: Int) async throws {
+        let ref = db.collection("products").document(productID)
+        
+        try await db.runTransaction { transaction, errorPointer in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(ref)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+            
+            guard var product = try? snapshot.data(as: Product.self) else {
+                errorPointer?.pointee = NSError(domain: "Product", code: 404, userInfo: [NSLocalizedDescriptionKey: "Product not found"])
+                return nil
+            }
+            
+            guard product.quantity >= quantityToBuy else {
+                errorPointer?.pointee = NSError(domain: "Stock", code: 400, userInfo: [NSLocalizedDescriptionKey: "Not enough stock. Only \(product.quantity) left."])
+                return nil
+            }
+            
+            let newQuantity = product.quantity - quantityToBuy
+            transaction.updateData(["quantity": newQuantity], forDocument: ref)
+            return nil
+        }
     }
     
     // MARK: - Favorites
