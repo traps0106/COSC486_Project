@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAuth
+import Combine
 
 class FavoriteViewModel: ObservableObject {
     @Published var favorites: [Product] = []

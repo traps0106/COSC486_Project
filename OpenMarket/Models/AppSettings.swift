@@ -31,8 +31,8 @@ class AppSettings: ObservableObject {
             switch self {
             case .BHD: return 1.0
             case .USD: return 2.65
-            case .GBP: return 2.07
-            case .EUR: return 2.43
+            case .GBP: return 1.96
+            case .EUR: return 2.26
             }
         }
     }
