@@ -4,7 +4,7 @@ import CoreLocation
 struct ProductListView: View {
     @StateObject private var viewModel = ProductViewModel()
     @StateObject private var locationManager = LocationManager()
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     @State private var searchText = ""
     @State private var showFilters = false
     
@@ -125,7 +125,7 @@ struct ProductListView: View {
 struct ProductCardView: View {
     let product: Product
     let isNearby: Bool
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     
     var body: some View {
         GeometryReader { geometry in

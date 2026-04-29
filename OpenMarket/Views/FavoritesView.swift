@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FavoritesView: View {
     @StateObject private var viewModel = FavoriteViewModel()
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     
     let columns = [
         GridItem(.flexible()),
@@ -61,7 +61,7 @@ struct FavoritesView: View {
 
 struct FavoriteCardView: View {
     let product: Product
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

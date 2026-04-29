@@ -8,7 +8,7 @@ struct ProductDetailView: View {
     @State private var showChat = false
     @State private var showMap = false
     @State private var showPayment = false
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     
     private let firebaseManager = FirebaseManager.shared
     

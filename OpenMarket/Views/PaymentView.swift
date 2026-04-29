@@ -6,7 +6,7 @@ struct PaymentView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showReview = false
     @State private var paymentComplete = false
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     
     var body: some View {
         NavigationStack {

@@ -6,7 +6,7 @@ struct ProfileView: View {
     @State private var myProducts: [Product] = []
     @State private var isLoading = false
     @State private var showSettings = false
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
     
     private let firebaseManager = FirebaseManager.shared
     
