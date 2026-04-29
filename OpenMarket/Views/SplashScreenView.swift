@@ -33,7 +33,7 @@ struct SplashScreenView: View {
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     
-                    Text("Buy & Sell on Campus")
+                    Text("Buy & Sell Anywhere!")
                         .font(.title3)
                         .fontWeight(.medium)
                         .foregroundColor(.white.opacity(0.9))
