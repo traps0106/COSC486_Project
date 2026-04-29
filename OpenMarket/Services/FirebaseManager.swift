@@ -433,4 +433,31 @@ class FirebaseManager: ObservableObject {
         let snapshot = try await db.collection("users").document(userID).getDocument()
         return try? snapshot.data(as: User.self)
     }
+    // MARK: - Product Management
+
+func updateProduct(productID: String, title: String, description: String, 
+                   price: Double, category: String) async throws {
+    try await db.collection("products").document(productID).updateData([
+        "title": title,
+        "description": description,
+        "price": price,
+        "category": category
+    ])
+}
+
+func deleteProduct(productID: String) async throws {
+    // Delete the product
+    try await db.collection("products").document(productID).delete()
+    
+    // Also delete related favorites
+    let favoritesSnapshot = try await db.collection("favorites")
+        .whereField("productID", isEqualTo: productID)
+        .getDocuments()
+    
+    for document in favoritesSnapshot.documents {
+        try await document.reference.delete()
+    }
+    
+    // Note: Reviews are kept for seller history
+}
 }

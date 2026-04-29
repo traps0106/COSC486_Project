@@ -26,5 +26,23 @@ class AppSettings: ObservableObject {
             case .EUR: return "Euro"
             }
         }
+        
+        var exchangeRate: Double {
+            switch self {
+            case .BHD: return 1.0
+            case .USD: return 2.65
+            case .GBP: return 2.07
+            case .EUR: return 2.43
+            }
+        }
+    }
+    
+    func convertPrice(_ priceInBHD: Double) -> Double {
+        return priceInBHD * currency.exchangeRate
+    }
+    
+    func formatPrice(_ priceInBHD: Double) -> String {
+        let convertedPrice = convertPrice(priceInBHD)
+        return "\(currency.symbol) \(String(format: "%.2f", convertedPrice))"
     }
 }

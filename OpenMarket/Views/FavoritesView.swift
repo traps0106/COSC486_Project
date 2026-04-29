@@ -82,7 +82,7 @@ struct FavoriteCardView: View {
                     .lineLimit(2)
                     .foregroundColor(.primary)
                 
-                Text("\(settings.currency.symbol) \(product.price, specifier: "%.2f")")
+                Text(settings.formatPrice(product.price))
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.green)

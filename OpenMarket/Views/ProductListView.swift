@@ -149,7 +149,7 @@ struct ProductCardView: View {
                         .frame(height: 40, alignment: .top)
                         .fixedSize(horizontal: false, vertical: true)
                     
-                    Text("\(settings.currency.symbol) \(product.price, specifier: "%.2f")")
+                    Text(settings.formatPrice(product.price))
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.green)

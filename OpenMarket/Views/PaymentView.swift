@@ -19,7 +19,7 @@ struct PaymentView: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Product: \(product.title)")
-                        Text("Price: \(settings.currency.symbol) \(product.price, specifier: "%.2f")")
+                        Text("Price: \(settings.formatPrice(product.price))")
                         Text("Seller: \(seller.name)")
                     }
                     .font(.headline)

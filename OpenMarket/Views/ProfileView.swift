@@ -97,7 +97,7 @@ struct ProfileView: View {
                                             .font(.headline)
                                             .lineLimit(2)
                                             .fixedSize(horizontal: false, vertical: true)
-                                        Text("\(settings.currency.symbol) \(product.price, specifier: "%.2f")")
+                                        Text(settings.formatPrice(product.price))
                                             .font(.subheadline)
                                             .foregroundColor(.green)
                                             .fontWeight(.semibold)
@@ -111,6 +111,13 @@ struct ProfileView: View {
                                     }
                                 }
                                 .padding(.vertical, 4)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    deleteProduct(product)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                     }
@@ -170,6 +177,19 @@ struct ProfileView: View {
         } catch {
             print("Error loading products: \(error)")
             await MainActor.run { isLoading = false }
+        }
+    }
+    
+    func deleteProduct(_ product: Product) {
+        guard let productID = product.id else { return }
+        
+        Task {
+            do {
+                try await firebaseManager.deleteProduct(productID: productID)
+                await loadMyProducts()
+            } catch {
+                print("Error deleting product: \(error)")
+            }
         }
     }
 }

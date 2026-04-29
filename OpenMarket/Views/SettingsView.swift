@@ -26,7 +26,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Preview:")
                         Spacer()
-                        Text("\(settings.currency.symbol) 100.00")
+                        Text(settings.formatPrice(100.0))
                             .fontWeight(.semibold)
                     }
                 }

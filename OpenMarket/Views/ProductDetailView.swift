@@ -8,7 +8,11 @@ struct ProductDetailView: View {
     @State private var showChat = false
     @State private var showMap = false
     @State private var showPayment = false
+    @State private var showEditSheet = false
+    @State private var showDeleteAlert = false
+    @State private var isDeleting = false
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.dismiss) private var dismiss
     
     private let firebaseManager = FirebaseManager.shared
     
@@ -39,7 +43,7 @@ struct ProductDetailView: View {
                             .fontWeight(.bold)
                             .fixedSize(horizontal: false, vertical: true)
                         
-                        Text("\(settings.currency.symbol) \(product.price, specifier: "%.2f")")
+                        Text(settings.formatPrice(product.price))
                             .font(.title2)
                             .foregroundColor(.green)
                             .fontWeight(.semibold)
@@ -204,6 +208,32 @@ struct ProductDetailView: View {
                                 .background(Color.blue.opacity(0.1))
                                 .cornerRadius(10)
                                 
+                                HStack(spacing: 12) {
+                                    Button(action: {
+                                        showEditSheet = true
+                                    }) {
+                                        Label("Edit", systemImage: "pencil")
+                                            .font(.headline)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.blue)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(10)
+                                    }
+                                    
+                                    Button(action: {
+                                        showDeleteAlert = true
+                                    }) {
+                                        Label("Delete", systemImage: "trash")
+                                            .font(.headline)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.red)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(10)
+                                    }
+                                }
+                                
                                 Button(action: {
                                     showMap = true
                                 }) {
@@ -237,6 +267,28 @@ struct ProductDetailView: View {
                 PaymentView(product: product, seller: seller)
             }
         }
+        .sheet(isPresented: $showEditSheet) {
+            EditProductView(product: product)
+        }
+        .alert("Delete Listing", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteProduct()
+            }
+        } message: {
+            Text("Are you sure you want to delete this listing? This action cannot be undone.")
+        }
+        .overlay {
+            if isDeleting {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .tint(.white)
+                }
+            }
+        }
         .task {
             await loadData()
         }
@@ -262,6 +314,27 @@ struct ProductDetailView: View {
             isFavorite.toggle()
         } catch {
             print("Error toggling favorite: \(error)")
+        }
+    }
+    
+    func deleteProduct() {
+        guard let productID = product.id else { return }
+        
+        isDeleting = true
+        
+        Task {
+            do {
+                try await firebaseManager.deleteProduct(productID: productID)
+                await MainActor.run {
+                    isDeleting = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isDeleting = false
+                    print("Error deleting product: \(error)")
+                }
+            }
         }
     }
 }
