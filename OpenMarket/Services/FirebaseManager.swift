@@ -243,7 +243,7 @@ class FirebaseManager: ObservableObject {
         throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
     }
     
-    print("📝 Creating review document...")
+    print("Creating review document...")
     
     let review = Review(
         id: nil,
