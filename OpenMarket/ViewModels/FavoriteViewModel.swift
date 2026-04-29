@@ -1,5 +1,6 @@
 import Foundation
-import Combine
+import FirebaseAuth
+
 class FavoriteViewModel: ObservableObject {
     @Published var favorites: [Product] = []
     @Published var isLoading = false
@@ -10,12 +11,13 @@ class FavoriteViewModel: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let fetchedFavorites = try await firebaseManager.fetchUserFavorites()
+            let products = try await firebaseManager.fetchFavorites()
             await MainActor.run {
-                favorites = fetchedFavorites
+                favorites = products
                 isLoading = false
             }
         } catch {
+            print("Error fetching favorites: \(error)")
             await MainActor.run { isLoading = false }
         }
     }
