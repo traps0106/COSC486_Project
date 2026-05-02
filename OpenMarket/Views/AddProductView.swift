@@ -1,11 +1,11 @@
 import SwiftUI
-import PhotosUI
+import CoreLocation
 
 struct AddProductView: View {
     @State private var title = ""
     @State private var description = ""
     @State private var price = ""
-    @State private var quantity = 1
+    @State private var quantity = "1"
     @State private var selectedCategory = "Electronics"
     @State private var selectedImage: UIImage?
     @State private var showImagePicker = false
@@ -15,42 +15,68 @@ struct AddProductView: View {
     @State private var errorMessage = ""
     
     @StateObject private var locationManager = LocationManager()
+    @ObservedObject private var settings = AppSettings.shared
     private let firebaseManager = FirebaseManager.shared
     
     let categories = ["Electronics", "Clothing", "Home", "Sports", "Books", "Other"]
+    
+    var isFormValid: Bool {
+        !title.isEmpty &&
+        !description.isEmpty &&
+        !price.isEmpty &&
+        Double(price) != nil &&
+        !quantity.isEmpty &&
+        Int(quantity) != nil &&
+        selectedImage != nil &&
+        locationManager.location != nil
+    }
     
     var body: some View {
         NavigationStack {
             Form {
                 Section("Product Image") {
-    if let image = selectedImage {
-        GeometryReader { geometry in
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .frame(width: geometry.size.width)
-                .cornerRadius(10)
-        }
-        .frame(height: 200)
-    }
-    
-    Button(action: { showImagePicker = true }) {
-        Label(selectedImage == nil ? "Select Image" : "Change Image", 
-              systemImage: "photo")
-    }
-}
+                    if let image = selectedImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 200)
+                            .clipped()
+                            .cornerRadius(10)
+                    }
+                    
+                    Button(action: { showImagePicker = true }) {
+                        Label(selectedImage == nil ? "Select Image" : "Change Image",
+                              systemImage: "photo")
+                    }
+                }
                 
                 Section("Product Details") {
                     TextField("Title", text: $title)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
+                    
                     VStack(alignment: .leading, spacing: 4) {
-    TextField("Price per item (\(AppSettings.shared.currency.symbol))", text: $price)
-        .keyboardType(.decimalPad)
-    Text("Enter price for ONE item in \(AppSettings.shared.currency.name)")
-        .font(.caption)
-        .foregroundColor(.secondary)
-}
+                        TextField("Price per item (BD)", text: $price)
+                            .keyboardType(.decimalPad)
+                        if settings.currency != .BHD {
+                            HStack(spacing: 4) {
+                                Text("≈ \(convertedPricePreview)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                    .fontWeight(.semibold)
+                                Image(systemName: "info.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            Text("Enter price in BD (base currency). Buyers will see it as \(settings.currency.symbol) \(convertedPricePreview)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("Enter price for ONE item")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     
                     Picker("Category", selection: $selectedCategory) {
                         ForEach(categories, id: \.self) { category in
@@ -58,29 +84,25 @@ struct AddProductView: View {
                         }
                     }
                     
-                    Stepper("Quantity: \(quantity)", value: $quantity, in: 1...999)
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("Quantity", text: $quantity)
+                            .keyboardType(.numberPad)
+                        Text("How many items do you have?")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Section("Location") {
-                    if let location = locationManager.location {
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .foregroundColor(.green)
-                            Text("Location captured")
-                                .foregroundColor(.secondary)
-                        }
-                    } else {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Getting location...")
-                                .foregroundColor(.secondary)
-                        }
+                    HStack {
+                        Image(systemName: locationManager.location != nil ? "checkmark.circle.fill" : "location.circle")
+                            .foregroundColor(locationManager.location != nil ? .green : .gray)
+                        Text(locationManager.location != nil ? "Location captured" : "Capturing location...")
                     }
                 }
                 
                 Section {
-                    Button(action: addProduct) {
+                    Button(action: listProduct) {
                         if isLoading {
                             HStack {
                                 Spacer()
@@ -93,10 +115,21 @@ struct AddProductView: View {
                                 .fontWeight(.semibold)
                         }
                     }
-                    .disabled(isLoading || !isFormValid)
+                    .disabled(!isFormValid || isLoading)
                 }
             }
             .navigationTitle("Sell an Item")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        clearForm()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ThemeToggleButton()
+                }
+            }
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(image: $selectedImage)
             }
@@ -105,7 +138,7 @@ struct AddProductView: View {
                     clearForm()
                 }
             } message: {
-                Text("Your product has been listed!")
+                Text("Your product has been listed successfully!")
             }
             .alert("Error", isPresented: $showError) {
                 Button("OK") { }
@@ -115,31 +148,18 @@ struct AddProductView: View {
         }
     }
     
-    var isFormValid: Bool {
-        !title.isEmpty && 
-        !description.isEmpty && 
-        !price.isEmpty && 
-        Double(price) != nil &&
-        selectedImage != nil && 
-        locationManager.location != nil
+    private var convertedPricePreview: String {
+        guard let priceValue = Double(price), priceValue > 0 else {
+            return "0.00"
+        }
+        let converted = priceValue * settings.currency.exchangeRate
+        return String(format: "%.2f", converted)
     }
     
-    func addProduct() {
-        guard let priceValue = Double(price) else {
-            errorMessage = "Invalid price"
-            showError = true
-            return
-        }
-        
-        guard let location = locationManager.location else {
-            errorMessage = "Location not available"
-            showError = true
-            return
-        }
-        
-        guard let image = selectedImage else {
-            errorMessage = "Please select an image"
-            showError = true
+    func listProduct() {
+        guard let priceValue = Double(price),
+              let quantityValue = Int(quantity),
+              let location = locationManager.location else {
             return
         }
         
@@ -147,14 +167,14 @@ struct AddProductView: View {
         
         Task {
             do {
-                let productID = try await firebaseManager.addProduct(
+                _ = try await firebaseManager.addProduct(
                     title: title,
                     description: description,
                     price: priceValue,
                     category: selectedCategory,
-                    image: image,
+                    image: selectedImage,
                     location: location.coordinate,
-                    quantity: quantity
+                    quantity: quantityValue
                 )
                 
                 await MainActor.run {
@@ -175,8 +195,8 @@ struct AddProductView: View {
         title = ""
         description = ""
         price = ""
-        quantity = 1
-        selectedImage = nil
+        quantity = "1"
         selectedCategory = "Electronics"
+        selectedImage = nil
     }
 }

@@ -49,6 +49,11 @@ struct FavoritesView: View {
                 }
             }
             .navigationTitle("Favorites")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ThemeToggleButton()
+                }
+            }
             .task {
                 await viewModel.fetchFavorites()
             }
