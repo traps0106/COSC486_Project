@@ -132,14 +132,16 @@ class FirebaseManager: ObservableObject {
         return try? snapshot.data(as: Product.self)
     }
     
-    func updateProduct(productID: String, title: String, description: String, price: Double, category: String) async throws {
-        try await db.collection("products").document(productID).updateData([
-            "title": title,
-            "description": description,
-            "price": price,
-            "category": category
-        ])
-    }
+    func updateProduct(productID: String, title: String, description: String, 
+                   price: Double, category: String, quantity: Int) async throws {
+    try await db.collection("products").document(productID).updateData([
+        "title": title,
+        "description": description,
+        "price": price,
+        "category": category,
+        "quantity": quantity
+    ])
+}
     
     func deleteProduct(productID: String) async throws {
         try await db.collection("products").document(productID).delete()

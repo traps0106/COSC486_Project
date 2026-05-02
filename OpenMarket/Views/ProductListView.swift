@@ -130,16 +130,30 @@ struct ProductCardView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(alignment: .leading, spacing: 0) {
-                AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
+                ZStack(alignment: .topTrailing) {
+                    AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.width * 0.75)
+                    .clipped()
+                    
+                    if product.quantity == 0 {
+                        Text("OUT OF STOCK")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.red)
+                            .cornerRadius(4)
+                            .padding(6)
+                    }
                 }
-                .frame(width: geometry.size.width, height: geometry.size.width * 0.75)
-                .clipped()
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(product.title)
@@ -172,6 +186,16 @@ struct ProductCardView: View {
                                 .foregroundColor(.orange)
                                 .cornerRadius(4)
                         }
+                        
+                        if product.quantity > 0 && product.quantity <= 5 {
+                            Text("\(product.quantity) left")
+                                .font(.caption)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Color.orange.opacity(0.2))
+                                .foregroundColor(.orange)
+                                .cornerRadius(4)
+                        }
                     }
                     
                     HStack(spacing: 2) {
@@ -188,6 +212,7 @@ struct ProductCardView: View {
             .background(Color(.systemBackground))
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .opacity(product.quantity == 0 ? 0.6 : 1.0)
         }
         .aspectRatio(0.75, contentMode: .fit)
     }

@@ -3,10 +3,20 @@ import SwiftUI
 struct PaymentView: View {
     let product: Product
     let seller: User
+    let quantityToBuy: Int
     @Environment(\.dismiss) private var dismiss
     @State private var showReview = false
     @State private var paymentComplete = false
+    @State private var isPurchasing = false
+    @State private var showError = false
+    @State private var errorMessage = ""
     @ObservedObject private var settings = AppSettings.shared
+    
+    private let firebaseManager = FirebaseManager.shared
+    
+    private var totalPrice: Double {
+        return product.price * Double(quantityToBuy)
+    }
     
     var body: some View {
         NavigationStack {
@@ -19,7 +29,15 @@ struct PaymentView: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Product: \(product.title)")
-                        Text("Price: \(settings.formatPrice(product.price))")
+                        Text("Price per item: \(settings.formatPrice(product.price))")
+                        Text("Quantity: \(quantityToBuy)")
+                            .fontWeight(.semibold)
+                        Divider()
+                        Text("Total: \(settings.formatPrice(totalPrice))")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.green)
+                        Divider()
                         Text("Seller: \(seller.name)")
                     }
                     .font(.headline)
@@ -31,16 +49,20 @@ struct PaymentView: View {
                     
                     Spacer()
                     
-                    Button(action: {
-                        paymentComplete = true
-                    }) {
-                        Text("Complete Purchase")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
+                    Button(action: completePurchase) {
+                        if isPurchasing {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Complete Purchase")
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(isPurchasing ? Color.gray : Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .disabled(isPurchasing)
                     .padding()
                 } else {
                     VStack(spacing: 20) {
@@ -54,6 +76,19 @@ struct PaymentView: View {
                         
                         Text("Thank you for your purchase")
                             .foregroundColor(.secondary)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Order Summary:")
+                                .font(.headline)
+                            Text("\(quantityToBuy)x \(product.title)")
+                            Text("Total Paid: \(settings.formatPrice(totalPrice))")
+                                .fontWeight(.bold)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                        .padding()
                         
                         Spacer()
                         
@@ -81,6 +116,34 @@ struct PaymentView: View {
                 ReviewView(product: product, seller: seller, onSubmit: {
                     dismiss()
                 })
+            }
+            .alert("Purchase Failed", isPresented: $showError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    func completePurchase() {
+        guard let productID = product.id else { return }
+        
+        isPurchasing = true
+        
+        Task {
+            do {
+                try await firebaseManager.purchaseProduct(productID: productID, quantityToBuy: quantityToBuy)
+                
+                await MainActor.run {
+                    isPurchasing = false
+                    paymentComplete = true
+                }
+            } catch {
+                await MainActor.run {
+                    isPurchasing = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
             }
         }
     }

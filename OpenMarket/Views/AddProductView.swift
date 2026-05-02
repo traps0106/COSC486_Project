@@ -44,8 +44,13 @@ struct AddProductView: View {
                     TextField("Title", text: $title)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
-                    TextField("Price (BD)", text: $price)
-                        .keyboardType(.decimalPad)
+                    VStack(alignment: .leading, spacing: 4) {
+                    TextField("Price per item (BD)", text: $price)
+        .keyboardType(.decimalPad)
+    Text("Enter price for ONE item, not total")
+        .font(.caption)
+        .foregroundColor(.secondary)
+}
                     
                     Picker("Category", selection: $selectedCategory) {
                         ForEach(categories, id: \.self) { category in

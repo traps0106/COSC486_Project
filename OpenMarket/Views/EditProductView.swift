@@ -8,6 +8,7 @@ struct EditProductView: View {
     @State private var description: String
     @State private var price: String
     @State private var selectedCategory: String
+    @State private var quantity: String
     
     @State private var isLoading = false
     @State private var showError = false
@@ -23,6 +24,7 @@ struct EditProductView: View {
         _description = State(initialValue: product.description)
         _price = State(initialValue: String(format: "%.2f", product.price))
         _selectedCategory = State(initialValue: product.category)
+        _quantity = State(initialValue: String(product.quantity))
     }
     
     var body: some View {
@@ -32,14 +34,22 @@ struct EditProductView: View {
                     TextField("Title", text: $title)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
-                    TextField("Price (BD)", text: $price)
-                        .keyboardType(.decimalPad)
+                    VStack(alignment: .leading, spacing: 4) {
+    TextField("Price per item (BD)", text: $price)
+        .keyboardType(.decimalPad)
+    Text("Price for ONE item")
+        .font(.caption)
+        .foregroundColor(.secondary)
+}
                     
                     Picker("Category", selection: $selectedCategory) {
                         ForEach(categories, id: \.self) { category in
                             Text(category).tag(category)
                         }
                     }
+                    
+                    TextField("Quantity", text: $quantity)
+                        .keyboardType(.numberPad)
                 }
                 
                 Section {
@@ -87,12 +97,21 @@ struct EditProductView: View {
         !title.isEmpty && 
         !description.isEmpty && 
         !price.isEmpty && 
-        Double(price) != nil
+        Double(price) != nil &&
+        !quantity.isEmpty &&
+        Int(quantity) != nil &&
+        Int(quantity)! >= 0
     }
     
     func saveChanges() {
         guard let priceValue = Double(price) else {
             errorMessage = "Invalid price"
+            showError = true
+            return
+        }
+        
+        guard let quantityValue = Int(quantity), quantityValue >= 0 else {
+            errorMessage = "Invalid quantity (must be 0 or more)"
             showError = true
             return
         }
@@ -112,7 +131,8 @@ struct EditProductView: View {
                     title: title,
                     description: description,
                     price: priceValue,
-                    category: selectedCategory
+                    category: selectedCategory,
+                    quantity: quantityValue
                 )
                 
                 await MainActor.run {

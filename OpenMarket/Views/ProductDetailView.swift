@@ -11,6 +11,7 @@ struct ProductDetailView: View {
     @State private var showEditSheet = false
     @State private var showDeleteAlert = false
     @State private var isDeleting = false
+    @State private var quantityToBuy = 1
     @ObservedObject private var settings = AppSettings.shared
     @Environment(\.dismiss) private var dismiss
     
@@ -19,6 +20,14 @@ struct ProductDetailView: View {
     private var isOwnProduct: Bool {
         guard let currentUserID = firebaseManager.currentUser?.id else { return false }
         return currentUserID == product.sellerID
+    }
+    
+    private var isOutOfStock: Bool {
+        return product.quantity == 0
+    }
+    
+    private var totalPrice: Double {
+        return product.price * Double(quantityToBuy)
     }
     
     var body: some View {
@@ -36,6 +45,19 @@ struct ProductDetailView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: geometry.size.height * 0.35)
                     .clipped()
+                    .overlay(alignment: .topTrailing) {
+                        if isOutOfStock {
+                            Text("OUT OF STOCK")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.red)
+                                .cornerRadius(8)
+                                .padding(12)
+                        }
+                    }
                     
                     VStack(alignment: .leading, spacing: 16) {
                         Text(product.title)
@@ -43,10 +65,31 @@ struct ProductDetailView: View {
                             .fontWeight(.bold)
                             .fixedSize(horizontal: false, vertical: true)
                         
-                        Text(settings.formatPrice(product.price))
-                            .font(.title2)
-                            .foregroundColor(.green)
-                            .fontWeight(.semibold)
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(settings.formatPrice(product.price))
+                                    .font(.title2)
+                                    .foregroundColor(.green)
+                                    .fontWeight(.semibold)
+                                Text("per item")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "cube.box.fill")
+                                        .font(.caption)
+                                        .foregroundColor(isOutOfStock ? .red : .blue)
+                                    Text("\(product.quantity) available")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(isOutOfStock ? .red : .primary)
+                                }
+                            }
+                        }
                         
                         HStack(spacing: 8) {
                             Text(product.category)
@@ -140,6 +183,62 @@ struct ProductDetailView: View {
                         
                         if !isOwnProduct {
                             VStack(spacing: 12) {
+                                if !isOutOfStock {
+                                    VStack(spacing: 12) {
+                                        HStack {
+                                            Text("Quantity to buy:")
+                                                .font(.headline)
+                                            Spacer()
+                                            
+                                            HStack(spacing: 12) {
+                                                Button(action: {
+                                                    if quantityToBuy > 1 {
+                                                        quantityToBuy -= 1
+                                                    }
+                                                }) {
+                                                    Image(systemName: "minus.circle.fill")
+                                                        .font(.title2)
+                                                        .foregroundColor(quantityToBuy > 1 ? .blue : .gray)
+                                                }
+                                                .disabled(quantityToBuy <= 1)
+                                                
+                                                Text("\(quantityToBuy)")
+                                                    .font(.title3)
+                                                    .fontWeight(.semibold)
+                                                    .frame(minWidth: 30)
+                                                
+                                                Button(action: {
+                                                    if quantityToBuy < product.quantity {
+                                                        quantityToBuy += 1
+                                                    }
+                                                }) {
+                                                    Image(systemName: "plus.circle.fill")
+                                                        .font(.title2)
+                                                        .foregroundColor(quantityToBuy < product.quantity ? .blue : .gray)
+                                                }
+                                                .disabled(quantityToBuy >= product.quantity)
+                                            }
+                                        }
+                                        .padding()
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(10)
+                                        
+                                        HStack {
+                                            Text("Total:")
+                                                .font(.title3)
+                                                .fontWeight(.semibold)
+                                            Spacer()
+                                            Text(settings.formatPrice(totalPrice))
+                                                .font(.title2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.green)
+                                        }
+                                        .padding()
+                                        .background(Color.green.opacity(0.1))
+                                        .cornerRadius(10)
+                                    }
+                                }
+                                
                                 Button(action: {
                                     showChat = true
                                 }) {
@@ -181,16 +280,30 @@ struct ProductDetailView: View {
                                     }
                                 }
                                 
-                                Button(action: {
-                                    showPayment = true
-                                }) {
-                                    Label("Buy Now", systemImage: "cart.fill")
-                                        .font(.headline)
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.orange)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
+                                if !isOutOfStock {
+                                    Button(action: {
+                                        showPayment = true
+                                    }) {
+                                        Label("Buy Now", systemImage: "cart.fill")
+                                            .font(.headline)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.orange)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(10)
+                                    }
+                                } else {
+                                    HStack {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.red)
+                                        Text("Out of Stock")
+                                            .font(.headline)
+                                            .foregroundColor(.red)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red.opacity(0.1))
+                                    .cornerRadius(10)
                                 }
                             }
                             .padding(.top, 8)
@@ -202,6 +315,17 @@ struct ProductDetailView: View {
                                     Text("This is your listing")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
+                                    Spacer()
+                                    if isOutOfStock {
+                                        Text("OUT OF STOCK")
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.red)
+                                            .cornerRadius(6)
+                                    }
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -264,7 +388,7 @@ struct ProductDetailView: View {
         }
         .sheet(isPresented: $showPayment) {
             if let seller = seller {
-                PaymentView(product: product, seller: seller)
+                PaymentView(product: product, seller: seller, quantityToBuy: quantityToBuy)
             }
         }
         .sheet(isPresented: $showEditSheet) {
