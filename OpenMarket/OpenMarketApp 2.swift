@@ -12,10 +12,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct OpenMarketApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @ObservedObject private var themeManager = ThemeManager.shared
     
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
+                .preferredColorScheme(themeManager.selectedTheme.colorScheme)
         }
     }
 }

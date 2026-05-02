@@ -20,98 +20,214 @@ struct PaymentView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+                
                 if !paymentComplete {
-                    Text("Mock Payment")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .padding(.top, 40)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Product: \(product.title)")
-                        Text("Price per item: \(settings.formatPrice(product.price))")
-                        Text("Quantity: \(quantityToBuy)")
-                            .fontWeight(.semibold)
-                        Divider()
-                        Text("Total: \(settings.formatPrice(totalPrice))")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                        Divider()
-                        Text("Seller: \(seller.name)")
-                    }
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .padding()
-                    
-                    Spacer()
-                    
-                    Button(action: completePurchase) {
-                        if isPurchasing {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("Complete Purchase")
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            Image(systemName: "creditcard.circle.fill")
+                                .font(.system(size: 80))
+                                .foregroundColor(.blue)
+                                .padding(.top, 40)
+                            
+                            Text("Order Summary")
+                                .font(.title)
+                                .fontWeight(.bold)
+                            
+                            VStack(spacing: 16) {
+                                AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                } placeholder: {
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.3))
+                                }
+                                .frame(height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Text("Product")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(product.title)
+                                            .fontWeight(.semibold)
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    HStack {
+                                        Text("Seller")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(seller.name)
+                                            .fontWeight(.semibold)
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    HStack {
+                                        Text("Price per item")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(settings.formatPrice(product.price))
+                                            .fontWeight(.semibold)
+                                    }
+                                    
+                                    HStack {
+                                        Text("Quantity")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text("\(quantityToBuy)")
+                                            .fontWeight(.semibold)
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    HStack {
+                                        Text("Total Amount")
+                                            .font(.headline)
+                                        Spacer()
+                                        Text(settings.formatPrice(totalPrice))
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.green)
+                                    }
+                                }
+                                .padding()
+                                .background(Color(.systemBackground))
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                            
+                            VStack(spacing: 12) {
+                                Text("⚠️ This is a mock payment")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("No real money will be charged")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(10)
+                            .padding(.horizontal)
+                            
+                            Button(action: completePurchase) {
+                                HStack {
+                                    if isPurchasing {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else {
+                                        Image(systemName: "checkmark.circle.fill")
+                                        Text("Complete Purchase")
+                                    }
+                                }
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(isPurchasing ? Color.gray : Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(color: Color.green.opacity(0.3), radius: 8, y: 4)
+                            }
+                            .disabled(isPurchasing)
+                            .padding(.horizontal)
+                            .padding(.bottom, 40)
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isPurchasing ? Color.gray : Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .disabled(isPurchasing)
-                    .padding()
                 } else {
-                    VStack(spacing: 20) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.green)
+                    VStack(spacing: 24) {
+                        Spacer()
+                        
+                        ZStack {
+                            Circle()
+                                .fill(Color.green.opacity(0.1))
+                                .frame(width: 120, height: 120)
+                            
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 80))
+                                .foregroundColor(.green)
+                        }
                         
                         Text("Purchase Complete!")
                             .font(.title)
                             .fontWeight(.bold)
                         
-                        Text("Thank you for your purchase")
+                        Text("Thank you for your order")
+                            .font(.headline)
                             .foregroundColor(.secondary)
                         
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Order Summary:")
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Order Details")
                                 .font(.headline)
-                            Text("\(quantityToBuy)x \(product.title)")
-                            Text("Total Paid: \(settings.formatPrice(totalPrice))")
-                                .fontWeight(.bold)
+                                .padding(.bottom, 4)
+                            
+                            HStack {
+                                Text("\(quantityToBuy)x")
+                                    .foregroundColor(.secondary)
+                                Text(product.title)
+                            }
+                            
+                            Divider()
+                            
+                            HStack {
+                                Text("Total Paid")
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text(settings.formatPrice(totalPrice))
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.green)
+                            }
                         }
                         .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(10)
-                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
                         
                         Spacer()
                         
-                        Button(action: {
-                            showReview = true
-                        }) {
-                            Text("Leave a Review")
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                showReview = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "star.fill")
+                                    Text("Leave a Review")
+                                }
+                                .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.blue)
                                 .foregroundColor(.white)
-                                .cornerRadius(10)
+                                .cornerRadius(12)
+                            }
+                            
+                            Button("Close") {
+                                dismiss()
+                            }
+                            .font(.headline)
+                            .foregroundColor(.blue)
                         }
-                        
-                        Button("Close") {
-                            dismiss()
-                        }
-                        .padding(.bottom)
+                        .padding(.horizontal)
+                        .padding(.bottom, 40)
                     }
-                    .padding()
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !paymentComplete {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showReview) {
                 ReviewView(product: product, seller: seller, onSubmit: {
                     dismiss()
@@ -136,7 +252,9 @@ struct PaymentView: View {
                 
                 await MainActor.run {
                     isPurchasing = false
-                    paymentComplete = true
+                    withAnimation {
+                        paymentComplete = true
+                    }
                 }
             } catch {
                 await MainActor.run {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -31,6 +32,23 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section {
+                    Picker("Appearance", selection: $themeManager.selectedTheme) {
+                        ForEach(ThemeManager.Theme.allCases, id: \.self) { theme in
+                            HStack {
+                                Text(theme.rawValue)
+                                Spacer()
+                                Image(systemName: themeIcon(for: theme))
+                                    .foregroundColor(.secondary)
+                            }
+                            .tag(theme)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } header: {
+                    Text("Theme")
+                }
+                
                 Section("About") {
                     HStack {
                         Text("Version")
@@ -57,6 +75,14 @@ struct SettingsView: View {
                     .fontWeight(.semibold)
                 }
             }
+        }
+    }
+    
+    func themeIcon(for theme: ThemeManager.Theme) -> String {
+        switch theme {
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        case .system: return "circle.lefthalf.filled"
         }
     }
 }

@@ -20,18 +20,16 @@ struct ProductListView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Hello, \(userName)! 👋")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("What are you looking for today?")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding()
+                VStack(spacing: 4) {
+    Text("Hello, \(userName)! 👋")
+        .font(.title2)
+        .fontWeight(.bold)
+    Text("What are you looking for today?")
+        .font(.subheadline)
+        .foregroundColor(.secondary)
+}
+.frame(maxWidth: .infinity)
+.padding()
                 .background(Color(.systemBackground))
                 
                 HStack {
@@ -111,6 +109,11 @@ struct ProductListView: View {
             }
             .navigationTitle("Market")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ThemeToggleButton()
+                }
+            }
             .sheet(isPresented: $showFilters) {
                 FilterView(viewModel: viewModel)
             }

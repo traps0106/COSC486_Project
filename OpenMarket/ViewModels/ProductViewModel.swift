@@ -1,64 +1,86 @@
 import Foundation
 import CoreLocation
 import Combine
+
 class ProductViewModel: ObservableObject {
     @Published var products: [Product] = []
     @Published var filteredProducts: [Product] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var searchText = ""
     
-    @Published var selectedCategory: String = ""
-    @Published var minPrice: String = ""
-    @Published var maxPrice: String = ""
-    @Published var searchRadius: Double = 50.0 // km
+    @Published var selectedCategory: String?
+    @Published var minPrice: Double?
+    @Published var maxPrice: Double?
+    @Published var searchRadius: Double = 10.0
     
-    private let firebaseManager = FirebaseManager.shared
     var userLocation: CLLocation?
     
-    let categories = ["Electronics", "Clothing", "Home", "Sports", "Books", "Other"]
+    private let firebaseManager = FirebaseManager.shared
+    private let settings = AppSettings.shared
     
     func fetchProducts() async {
-        await MainActor.run { isLoading = true }
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
         
         do {
-            let min = Double(minPrice) ?? nil
-            let max = Double(maxPrice) ?? nil
-            let category = selectedCategory.isEmpty ? nil : selectedCategory
-            
-            let fetchedProducts = try await firebaseManager.fetchProducts(
-                category: category,
-                minPrice: min,
-                maxPrice: max,
-                userLocation: userLocation,
-                radius: searchRadius
-            )
-            
+            let fetchedProducts = try await firebaseManager.fetchProducts()
             await MainActor.run {
-                products = fetchedProducts
-                filteredProducts = fetchedProducts
-                isLoading = false
+                self.products = fetchedProducts
+                self.filteredProducts = fetchedProducts
+                self.isLoading = false
             }
+            applyFilters()
         } catch {
             await MainActor.run {
-                errorMessage = error.localizedDescription
-                isLoading = false
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
             }
         }
     }
     
     func searchProducts(query: String) {
-        if query.isEmpty {
-            filteredProducts = products
-        } else {
-            filteredProducts = products.filter { product in
-                product.title.localizedCaseInsensitiveContains(query) ||
-                product.description.localizedCaseInsensitiveContains(query)
+        searchText = query
+        applyFilters()
+    }
+    
+    func applyFilters() {
+        var results = products
+        
+        if !searchText.isEmpty {
+            results = results.filter { product in
+                product.title.localizedCaseInsensitiveContains(searchText) ||
+                product.description.localizedCaseInsensitiveContains(searchText)
             }
         }
+        
+        if let category = selectedCategory, !category.isEmpty {
+            results = results.filter { $0.category == category }
+        }
+        
+        if let minPrice = minPrice {
+            let minPriceInBHD = minPrice / settings.currency.exchangeRate
+            results = results.filter { $0.price >= minPriceInBHD }
+        }
+        
+        if let maxPrice = maxPrice {
+            let maxPriceInBHD = maxPrice / settings.currency.exchangeRate
+            results = results.filter { $0.price <= maxPriceInBHD }
+        }
+        
+        if let userLocation = userLocation {
+            results = results.filter { product in
+                product.distance(from: userLocation) <= searchRadius
+            }
+        }
+        
+        filteredProducts = results
     }
     
     func isNearby(product: Product) -> Bool {
         guard let userLocation = userLocation else { return false }
-        return product.distance(from: userLocation) <= 10.0 // Within 10km
+        return product.distance(from: userLocation) <= searchRadius
     }
 }
