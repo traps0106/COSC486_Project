@@ -35,7 +35,7 @@ struct EditProductView: View {
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
                     VStack(alignment: .leading, spacing: 4) {
-    TextField("Price per item (BD)", text: $price)
+    TextField("Price per item (\(AppSettings.shared.currency.symbol))", text: $price)
         .keyboardType(.decimalPad)
     Text("Price for ONE item")
         .font(.caption)

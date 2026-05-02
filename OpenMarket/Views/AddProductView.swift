@@ -45,9 +45,9 @@ struct AddProductView: View {
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3...6)
                     VStack(alignment: .leading, spacing: 4) {
-                    TextField("Price per item (BD)", text: $price)
+    TextField("Price per item (\(AppSettings.shared.currency.symbol))", text: $price)
         .keyboardType(.decimalPad)
-    Text("Enter price for ONE item, not total")
+    Text("Enter price for ONE item in \(AppSettings.shared.currency.name)")
         .font(.caption)
         .foregroundColor(.secondary)
 }
