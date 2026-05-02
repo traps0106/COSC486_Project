@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseAuth
+import Combine
 
 struct ConversationsListView: View {
     @StateObject private var viewModel = ConversationViewModel()
@@ -101,8 +102,7 @@ class ConversationViewModel: ObservableObject {
         await MainActor.run { isLoading = true }
         
         do {
-            let db = firebaseManager.db
-            let snapshot = try await db.collection("messages")
+            let snapshot = try await firebaseManager.db.collection("messages")
                 .order(by: "timestamp", descending: true)
                 .getDocuments()
             

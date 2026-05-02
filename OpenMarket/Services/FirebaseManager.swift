@@ -9,7 +9,7 @@ class FirebaseManager: ObservableObject {
     static let shared = FirebaseManager()
     
     private let auth = Auth.auth()
-    private let db = Firestore.firestore()
+    let db = Firestore.firestore()
     
     @Published var currentUser: User?
     
